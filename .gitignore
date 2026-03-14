@@ -1,0 +1,11 @@
+node_modules
+dist
+.env
+*.log
+.DS_Store
+# Evitar subir o banco local caso exista
+*.db
+*.db-journal
+# Docker files
+Dockerfile
+.dockerignore

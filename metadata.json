@@ -1,0 +1,5 @@
+{
+  "name": "n8n Controller",
+  "description": "A dashboard to manage, create, enable, and disable n8n workflows.",
+  "requestFramePermissions": []
+}

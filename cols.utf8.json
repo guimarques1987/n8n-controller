@@ -1,0 +1,122 @@
+[
+  {
+    "column_name": "id",
+    "data_type": "integer"
+  },
+  {
+    "column_name": "cod-cliente",
+    "data_type": "integer"
+  },
+  {
+    "column_name": "celular",
+    "data_type": "text"
+  },
+  {
+    "column_name": "horario-funcionamento",
+    "data_type": "text"
+  },
+  {
+    "column_name": "endereco",
+    "data_type": "text"
+  },
+  {
+    "column_name": "site",
+    "data_type": "text"
+  },
+  {
+    "column_name": "nome-estabelecimento",
+    "data_type": "text"
+  },
+  {
+    "column_name": "chave-pix",
+    "data_type": "text"
+  },
+  {
+    "column_name": "nome-favoricido",
+    "data_type": "text"
+  },
+  {
+    "column_name": "msg-fechado",
+    "data_type": "text"
+  },
+  {
+    "column_name": "fechado-aberto",
+    "data_type": "integer"
+  },
+  {
+    "column_name": "msg-saudacao",
+    "data_type": "text"
+  },
+  {
+    "column_name": "imagem-aberto",
+    "data_type": "text"
+  },
+  {
+    "column_name": "msg-fechado2",
+    "data_type": "text"
+  },
+  {
+    "column_name": "imagem-fechado",
+    "data_type": "text"
+  },
+  {
+    "column_name": "folga",
+    "data_type": "text"
+  },
+  {
+    "column_name": "instancia",
+    "data_type": "text"
+  },
+  {
+    "column_name": "token",
+    "data_type": "text"
+  },
+  {
+    "column_name": "pushName",
+    "data_type": "text"
+  },
+  {
+    "column_name": "senha-app",
+    "data_type": "text"
+  },
+  {
+    "column_name": "email",
+    "data_type": "text"
+  },
+  {
+    "column_name": "id-loja",
+    "data_type": "integer"
+  },
+  {
+    "column_name": "link-foto-aberto",
+    "data_type": "text"
+  },
+  {
+    "column_name": "link-foto-fechado",
+    "data_type": "text"
+  },
+  {
+    "column_name": "ativa-robo",
+    "data_type": "integer"
+  },
+  {
+    "column_name": "ativar-ia",
+    "data_type": "integer"
+  },
+  {
+    "column_name": "ativa-ia",
+    "data_type": "boolean"
+  },
+  {
+    "column_name": "tipo_mensagem_aberto",
+    "data_type": "text"
+  },
+  {
+    "column_name": "tipo_mensagem_fechado",
+    "data_type": "text"
+  },
+  {
+    "column_name": "msg-despedida",
+    "data_type": "text"
+  }
+]
