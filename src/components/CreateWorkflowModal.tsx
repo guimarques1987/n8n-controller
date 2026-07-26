@@ -110,14 +110,41 @@ const CreateWorkflowModal: React.FC<CreateWorkflowModalProps> = ({
     const [globalLojaId, setGlobalLojaId] = useState('');
     const [globalLojaNome, setGlobalLojaNome] = useState('');
 
+    // Estado para selecionar o tipo de modelo (Uazapi / YCloude / Oficial)
+    const [selectedModelType, setSelectedModelType] = useState<'uazapi' | 'ycloud' | 'oficial'>('uazapi');
+
     // Estado para armazenar quais modelos foram selecionados na UI
     const [selectedKeys, setSelectedKeys] = useState<Record<string, boolean>>({
-        delivery: false,
+        delivery_uazapi: false,
+        delivery_ycloud: false,
+        delivery_oficial: false,
         presencial: false,
         recuperador: false,
         lembrete: false,
-        status: false
+        status_uazapi: false,
+        status_ycloud: false,
+        status_oficial: false
     });
+
+    const handleSelectModelType = (type: 'uazapi' | 'ycloud' | 'oficial') => {
+        setSelectedModelType(type);
+        setSelectedKeys(prev => {
+            const next = { ...prev };
+            if (type !== 'uazapi') {
+                next.delivery_uazapi = false;
+                next.status_uazapi = false;
+            }
+            if (type !== 'ycloud') {
+                next.delivery_ycloud = false;
+                next.status_ycloud = false;
+            }
+            if (type !== 'oficial') {
+                next.delivery_oficial = false;
+                next.status_oficial = false;
+            }
+            return next;
+        });
+    };
 
     // Estado para armazenar os dados carregados das instâncias remotas (getWorkflow)
     const [fetchedData, setFetchedData] = useState<Record<string, any>>({});
@@ -544,8 +571,59 @@ const CreateWorkflowModal: React.FC<CreateWorkflowModalProps> = ({
                                 <CheckSquare className="w-4 h-4" /> 2. QUAIS FLUXOS DESEJA IMPORTAR?
                             </label>
 
+                            {/* ─── Seletor de Tipo de Modelo (Uazapi / YCloude / API Oficial) ─── */}
+                            <div className="bg-gray-50 rounded-xl border border-gray-200 p-3 mb-3">
+                                <p className="text-[10px] font-black text-gray-500 uppercase tracking-wide mb-2">Escolha qual modelo do cliente cadastrar:</p>
+                                <div className="grid grid-cols-3 gap-2">
+                                    <button
+                                        type="button"
+                                        onClick={() => handleSelectModelType('uazapi')}
+                                        className={`flex items-center justify-center gap-1.5 py-2 px-2 rounded-lg border-2 text-xs font-bold transition-all ${
+                                            selectedModelType === 'uazapi'
+                                                ? 'border-blue-500 bg-blue-50 text-blue-700 shadow-sm'
+                                                : 'border-gray-200 bg-white text-gray-500 hover:border-blue-300'
+                                        }`}
+                                    >
+                                        <span>📡 Uazapi</span>
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => handleSelectModelType('ycloud')}
+                                        className={`flex items-center justify-center gap-1.5 py-2 px-2 rounded-lg border-2 text-xs font-bold transition-all ${
+                                            selectedModelType === 'ycloud'
+                                                ? 'border-emerald-500 bg-emerald-50 text-emerald-700 shadow-sm'
+                                                : 'border-gray-200 bg-white text-gray-500 hover:border-emerald-300'
+                                        }`}
+                                    >
+                                        <span>☁️ YCloude</span>
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => handleSelectModelType('oficial')}
+                                        className={`flex items-center justify-center gap-1.5 py-2 px-2 rounded-lg border-2 text-xs font-bold transition-all ${
+                                            selectedModelType === 'oficial'
+                                                ? 'border-indigo-500 bg-indigo-50 text-indigo-700 shadow-sm'
+                                                : 'border-gray-200 bg-white text-gray-500 hover:border-indigo-300'
+                                        }`}
+                                    >
+                                        <span>✅ API Oficial</span>
+                                    </button>
+                                </div>
+                            </div>
+
                             <div className="space-y-2.5">
-                                {FIXED_TEMPLATES.map(meta => {
+                                {FIXED_TEMPLATES.filter(meta => {
+                                    if (selectedModelType === 'uazapi') {
+                                        return ['delivery_uazapi', 'presencial', 'recuperador', 'lembrete', 'status_uazapi'].includes(meta.key);
+                                    }
+                                    if (selectedModelType === 'ycloud') {
+                                        return ['delivery_ycloud', 'presencial', 'recuperador', 'lembrete', 'status_ycloud'].includes(meta.key);
+                                    }
+                                    if (selectedModelType === 'oficial') {
+                                        return ['delivery_oficial', 'presencial', 'recuperador', 'lembrete', 'status_oficial'].includes(meta.key);
+                                    }
+                                    return true;
+                                }).map(meta => {
                                     const isChecked = selectedKeys[meta.key];
                                     const isFetching = loadingFetch[meta.key];
                                     const isReady = fetchedData[meta.key];

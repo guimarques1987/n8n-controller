@@ -15,6 +15,7 @@ interface SettingsModalProps {
 export default function SettingsModal({ isOpen, onClose, config, onSaveConfig, workflows1, workflows2, fetchWorkflowDetails }: SettingsModalProps) {
   const [localConfig, setLocalConfig] = useState<any>(null);
   const [activeTab, setActiveTab] = useState<'general' | 'templates'>('general');
+  const [activeModel, setActiveModel] = useState<'uazapi' | 'ycloud' | 'oficial'>('uazapi');
   const [workflowDetails, setWorkflowDetails] = useState<Record<string, Workflow>>({});
   const [nodeSearch, setNodeSearch] = useState<Record<string, string>>({});
   const [workflowSearch, setWorkflowSearch] = useState<Record<string, string>>({});
@@ -346,197 +347,258 @@ export default function SettingsModal({ isOpen, onClose, config, onSaveConfig, w
               )}
 
               {activeTab === 'templates' && (
-                <div className="space-y-8">
-                  {/* ─── Instância 1: Robô Delivery — 3 Modelos de Atendimento + Complementares ─── */}
+                <div className="space-y-6">
+
+                  {/* ─── Seletor de Tipo de Modelo ─── */}
+                  <div className="bg-gray-50 rounded-xl border border-gray-200 p-4">
+                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Selecione o tipo de modelo para configurar</p>
+                    <div className="grid grid-cols-3 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setActiveModel('uazapi')}
+                        className={`flex flex-col items-center justify-center gap-1.5 py-3 px-2 rounded-lg border-2 text-sm font-semibold transition-all ${
+                          activeModel === 'uazapi'
+                            ? 'border-blue-500 bg-blue-50 text-blue-700 shadow-sm'
+                            : 'border-gray-200 bg-white text-gray-500 hover:border-blue-300 hover:bg-blue-50/50'
+                        }`}
+                      >
+                        <span className="text-lg">📡</span>
+                        <span>Uazapi</span>
+                        {activeModel === 'uazapi' && <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span>}
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setActiveModel('ycloud')}
+                        className={`flex flex-col items-center justify-center gap-1.5 py-3 px-2 rounded-lg border-2 text-sm font-semibold transition-all ${
+                          activeModel === 'ycloud'
+                            ? 'border-emerald-500 bg-emerald-50 text-emerald-700 shadow-sm'
+                            : 'border-gray-200 bg-white text-gray-500 hover:border-emerald-300 hover:bg-emerald-50/50'
+                        }`}
+                      >
+                        <span className="text-lg">☁️</span>
+                        <span>YCloude</span>
+                        {activeModel === 'ycloud' && <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>}
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setActiveModel('oficial')}
+                        className={`flex flex-col items-center justify-center gap-1.5 py-3 px-2 rounded-lg border-2 text-sm font-semibold transition-all ${
+                          activeModel === 'oficial'
+                            ? 'border-indigo-500 bg-indigo-50 text-indigo-700 shadow-sm'
+                            : 'border-gray-200 bg-white text-gray-500 hover:border-indigo-300 hover:bg-indigo-50/50'
+                        }`}
+                      >
+                        <span className="text-lg">✅</span>
+                        <span>API Oficial</span>
+                        {activeModel === 'oficial' && <span className="w-1.5 h-1.5 rounded-full bg-indigo-500"></span>}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* ─── Instância 1: Delivery ─── */}
                   <div className="bg-blue-50/50 p-5 rounded-xl border border-blue-200">
                     <h4 className="text-lg font-bold text-gray-900 flex items-center mb-6">
                       <span className="w-4 h-4 rounded-full mr-3 bg-blue-500 shadow-sm border border-blue-600"></span>
-                      Modelos de Fluxo - Instância Delivery (1)
+                      Delivery (Instância 1) — {activeModel === 'uazapi' ? 'Modelo Uazapi' : activeModel === 'ycloud' ? 'Modelo YCloude' : 'Modelo API Oficial'}
                     </h4>
 
                     <div className="grid grid-cols-1 gap-6">
-                      <TemplateConfigurator
-                        title="1. Delivery — Modelo Uazapi"
-                        templateKey="delivery_uazapi"
-                        instanceId="1"
-                        config={localConfig}
-                        updateTemplate={updateTemplate}
-                        workflows={workflows1}
-                        workflowSearch={workflowSearch}
-                        handleWorkflowSearch={handleWorkflowSearch}
-                        nodeSearch={nodeSearch}
-                        handleNodeSearch={handleNodeSearch}
-                        getFilteredNodes={getFilteredNodes}
-                        toggleEditableNode={toggleEditableNode}
-                        workflowDetails={workflowDetails}
-                        getNodeEditableParams={getNodeEditableParams}
-                        updateNodeParamConfig={updateNodeParamConfig}
-                        setLocalConfig={setLocalConfig}
-                      />
+                      {activeModel === 'uazapi' && (
+                        <>
+                          <TemplateConfigurator
+                            title="Delivery — Uazapi"
+                            templateKey="delivery_uazapi"
+                            instanceId="1"
+                            config={localConfig}
+                            updateTemplate={updateTemplate}
+                            workflows={workflows1}
+                            workflowSearch={workflowSearch}
+                            handleWorkflowSearch={handleWorkflowSearch}
+                            nodeSearch={nodeSearch}
+                            handleNodeSearch={handleNodeSearch}
+                            getFilteredNodes={getFilteredNodes}
+                            toggleEditableNode={toggleEditableNode}
+                            workflowDetails={workflowDetails}
+                            getNodeEditableParams={getNodeEditableParams}
+                            updateNodeParamConfig={updateNodeParamConfig}
+                            setLocalConfig={setLocalConfig}
+                          />
+                          <TemplateConfigurator
+                            title="Atendimento Presencial"
+                            templateKey="presencial"
+                            instanceId="1"
+                            config={localConfig}
+                            updateTemplate={updateTemplate}
+                            workflows={workflows1}
+                            workflowSearch={workflowSearch}
+                            handleWorkflowSearch={handleWorkflowSearch}
+                            nodeSearch={nodeSearch}
+                            handleNodeSearch={handleNodeSearch}
+                            getFilteredNodes={getFilteredNodes}
+                            toggleEditableNode={toggleEditableNode}
+                            workflowDetails={workflowDetails}
+                            getNodeEditableParams={getNodeEditableParams}
+                            updateNodeParamConfig={updateNodeParamConfig}
+                            setLocalConfig={setLocalConfig}
+                          />
+                          <TemplateConfigurator
+                            title="Recuperador de Carrinho"
+                            templateKey="recuperador"
+                            instanceId="1"
+                            config={localConfig}
+                            updateTemplate={updateTemplate}
+                            workflows={workflows1}
+                            workflowSearch={workflowSearch}
+                            handleWorkflowSearch={handleWorkflowSearch}
+                            nodeSearch={nodeSearch}
+                            handleNodeSearch={handleNodeSearch}
+                            getFilteredNodes={getFilteredNodes}
+                            toggleEditableNode={toggleEditableNode}
+                            workflowDetails={workflowDetails}
+                            getNodeEditableParams={getNodeEditableParams}
+                            updateNodeParamConfig={updateNodeParamConfig}
+                            setLocalConfig={setLocalConfig}
+                          />
+                          <TemplateConfigurator
+                            title="Fluxo de Lembrete"
+                            templateKey="lembrete"
+                            instanceId="1"
+                            config={localConfig}
+                            updateTemplate={updateTemplate}
+                            workflows={workflows1}
+                            workflowSearch={workflowSearch}
+                            handleWorkflowSearch={handleWorkflowSearch}
+                            nodeSearch={nodeSearch}
+                            handleNodeSearch={handleNodeSearch}
+                            getFilteredNodes={getFilteredNodes}
+                            toggleEditableNode={toggleEditableNode}
+                            workflowDetails={workflowDetails}
+                            getNodeEditableParams={getNodeEditableParams}
+                            updateNodeParamConfig={updateNodeParamConfig}
+                            setLocalConfig={setLocalConfig}
+                          />
+                        </>
+                      )}
 
-                      <TemplateConfigurator
-                        title="2. Delivery — Modelo YCloude"
-                        templateKey="delivery_ycloud"
-                        instanceId="1"
-                        config={localConfig}
-                        updateTemplate={updateTemplate}
-                        workflows={workflows1}
-                        workflowSearch={workflowSearch}
-                        handleWorkflowSearch={handleWorkflowSearch}
-                        nodeSearch={nodeSearch}
-                        handleNodeSearch={handleNodeSearch}
-                        getFilteredNodes={getFilteredNodes}
-                        toggleEditableNode={toggleEditableNode}
-                        workflowDetails={workflowDetails}
-                        getNodeEditableParams={getNodeEditableParams}
-                        updateNodeParamConfig={updateNodeParamConfig}
-                        setLocalConfig={setLocalConfig}
-                      />
+                      {activeModel === 'ycloud' && (
+                        <TemplateConfigurator
+                          title="Delivery — YCloude"
+                          templateKey="delivery_ycloud"
+                          instanceId="1"
+                          config={localConfig}
+                          updateTemplate={updateTemplate}
+                          workflows={workflows1}
+                          workflowSearch={workflowSearch}
+                          handleWorkflowSearch={handleWorkflowSearch}
+                          nodeSearch={nodeSearch}
+                          handleNodeSearch={handleNodeSearch}
+                          getFilteredNodes={getFilteredNodes}
+                          toggleEditableNode={toggleEditableNode}
+                          workflowDetails={workflowDetails}
+                          getNodeEditableParams={getNodeEditableParams}
+                          updateNodeParamConfig={updateNodeParamConfig}
+                          setLocalConfig={setLocalConfig}
+                        />
+                      )}
 
-                      <TemplateConfigurator
-                        title="3. Delivery — Modelo API Oficial"
-                        templateKey="delivery_oficial"
-                        instanceId="1"
-                        config={localConfig}
-                        updateTemplate={updateTemplate}
-                        workflows={workflows1}
-                        workflowSearch={workflowSearch}
-                        handleWorkflowSearch={handleWorkflowSearch}
-                        nodeSearch={nodeSearch}
-                        handleNodeSearch={handleNodeSearch}
-                        getFilteredNodes={getFilteredNodes}
-                        toggleEditableNode={toggleEditableNode}
-                        workflowDetails={workflowDetails}
-                        getNodeEditableParams={getNodeEditableParams}
-                        updateNodeParamConfig={updateNodeParamConfig}
-                        setLocalConfig={setLocalConfig}
-                      />
-
-                      <TemplateConfigurator
-                        title="4. Atendimento Presencial"
-                        templateKey="presencial"
-                        instanceId="1"
-                        config={localConfig}
-                        updateTemplate={updateTemplate}
-                        workflows={workflows1}
-                        workflowSearch={workflowSearch}
-                        handleWorkflowSearch={handleWorkflowSearch}
-                        nodeSearch={nodeSearch}
-                        handleNodeSearch={handleNodeSearch}
-                        getFilteredNodes={getFilteredNodes}
-                        toggleEditableNode={toggleEditableNode}
-                        workflowDetails={workflowDetails}
-                        getNodeEditableParams={getNodeEditableParams}
-                        updateNodeParamConfig={updateNodeParamConfig}
-                        setLocalConfig={setLocalConfig}
-                      />
-
-                      <TemplateConfigurator
-                        title="5. Recuperador de Carrinho"
-                        templateKey="recuperador"
-                        instanceId="1"
-                        config={localConfig}
-                        updateTemplate={updateTemplate}
-                        workflows={workflows1}
-                        workflowSearch={workflowSearch}
-                        handleWorkflowSearch={handleWorkflowSearch}
-                        nodeSearch={nodeSearch}
-                        handleNodeSearch={handleNodeSearch}
-                        getFilteredNodes={getFilteredNodes}
-                        toggleEditableNode={toggleEditableNode}
-                        workflowDetails={workflowDetails}
-                        getNodeEditableParams={getNodeEditableParams}
-                        updateNodeParamConfig={updateNodeParamConfig}
-                        setLocalConfig={setLocalConfig}
-                      />
-
-                      <TemplateConfigurator
-                        title="6. Fluxo de Lembrete"
-                        templateKey="lembrete"
-                        instanceId="1"
-                        config={localConfig}
-                        updateTemplate={updateTemplate}
-                        workflows={workflows1}
-                        workflowSearch={workflowSearch}
-                        handleWorkflowSearch={handleWorkflowSearch}
-                        nodeSearch={nodeSearch}
-                        handleNodeSearch={handleNodeSearch}
-                        getFilteredNodes={getFilteredNodes}
-                        toggleEditableNode={toggleEditableNode}
-                        workflowDetails={workflowDetails}
-                        getNodeEditableParams={getNodeEditableParams}
-                        updateNodeParamConfig={updateNodeParamConfig}
-                        setLocalConfig={setLocalConfig}
-                      />
+                      {activeModel === 'oficial' && (
+                        <TemplateConfigurator
+                          title="Delivery — API Oficial"
+                          templateKey="delivery_oficial"
+                          instanceId="1"
+                          config={localConfig}
+                          updateTemplate={updateTemplate}
+                          workflows={workflows1}
+                          workflowSearch={workflowSearch}
+                          handleWorkflowSearch={handleWorkflowSearch}
+                          nodeSearch={nodeSearch}
+                          handleNodeSearch={handleNodeSearch}
+                          getFilteredNodes={getFilteredNodes}
+                          toggleEditableNode={toggleEditableNode}
+                          workflowDetails={workflowDetails}
+                          getNodeEditableParams={getNodeEditableParams}
+                          updateNodeParamConfig={updateNodeParamConfig}
+                          setLocalConfig={setLocalConfig}
+                        />
+                      )}
                     </div>
                   </div>
 
-                  {/* ─── Instância 2: Robô de Status — 3 Modelos de Notificação ─── */}
-                  <div className="bg-purple-50/50 p-5 rounded-xl border border-purple-200 mt-8">
+                  {/* ─── Instância 2: Status ─── */}
+                  <div className="bg-purple-50/50 p-5 rounded-xl border border-purple-200">
                     <h4 className="text-lg font-bold text-gray-900 flex items-center mb-6">
                       <span className="w-4 h-4 rounded-full mr-3 bg-purple-500 shadow-sm border border-purple-600"></span>
-                      Modelos de Fluxo - Instância Status (2)
+                      Status (Instância 2) — {activeModel === 'uazapi' ? 'Modelo Uazapi' : activeModel === 'ycloud' ? 'Modelo YCloude' : 'Modelo API Oficial'}
                     </h4>
 
                     <div className="grid grid-cols-1 gap-6">
-                      <TemplateConfigurator
-                        title="1. Status — Modelo Uazapi"
-                        templateKey="status_uazapi"
-                        instanceId="2"
-                        config={localConfig}
-                        updateTemplate={updateTemplate}
-                        workflows={workflows2}
-                        workflowSearch={workflowSearch}
-                        handleWorkflowSearch={handleWorkflowSearch}
-                        nodeSearch={nodeSearch}
-                        handleNodeSearch={handleNodeSearch}
-                        getFilteredNodes={getFilteredNodes}
-                        toggleEditableNode={toggleEditableNode}
-                        workflowDetails={workflowDetails}
-                        getNodeEditableParams={getNodeEditableParams}
-                        updateNodeParamConfig={updateNodeParamConfig}
-                        setLocalConfig={setLocalConfig}
-                      />
+                      {activeModel === 'uazapi' && (
+                        <TemplateConfigurator
+                          title="Status — Uazapi"
+                          templateKey="status_uazapi"
+                          instanceId="2"
+                          config={localConfig}
+                          updateTemplate={updateTemplate}
+                          workflows={workflows2}
+                          workflowSearch={workflowSearch}
+                          handleWorkflowSearch={handleWorkflowSearch}
+                          nodeSearch={nodeSearch}
+                          handleNodeSearch={handleNodeSearch}
+                          getFilteredNodes={getFilteredNodes}
+                          toggleEditableNode={toggleEditableNode}
+                          workflowDetails={workflowDetails}
+                          getNodeEditableParams={getNodeEditableParams}
+                          updateNodeParamConfig={updateNodeParamConfig}
+                          setLocalConfig={setLocalConfig}
+                        />
+                      )}
 
-                      <TemplateConfigurator
-                        title="2. Status — Modelo YCloude"
-                        templateKey="status_ycloud"
-                        instanceId="2"
-                        config={localConfig}
-                        updateTemplate={updateTemplate}
-                        workflows={workflows2}
-                        workflowSearch={workflowSearch}
-                        handleWorkflowSearch={handleWorkflowSearch}
-                        nodeSearch={nodeSearch}
-                        handleNodeSearch={handleNodeSearch}
-                        getFilteredNodes={getFilteredNodes}
-                        toggleEditableNode={toggleEditableNode}
-                        workflowDetails={workflowDetails}
-                        getNodeEditableParams={getNodeEditableParams}
-                        updateNodeParamConfig={updateNodeParamConfig}
-                        setLocalConfig={setLocalConfig}
-                      />
+                      {activeModel === 'ycloud' && (
+                        <TemplateConfigurator
+                          title="Status — YCloude"
+                          templateKey="status_ycloud"
+                          instanceId="2"
+                          config={localConfig}
+                          updateTemplate={updateTemplate}
+                          workflows={workflows2}
+                          workflowSearch={workflowSearch}
+                          handleWorkflowSearch={handleWorkflowSearch}
+                          nodeSearch={nodeSearch}
+                          handleNodeSearch={handleNodeSearch}
+                          getFilteredNodes={getFilteredNodes}
+                          toggleEditableNode={toggleEditableNode}
+                          workflowDetails={workflowDetails}
+                          getNodeEditableParams={getNodeEditableParams}
+                          updateNodeParamConfig={updateNodeParamConfig}
+                          setLocalConfig={setLocalConfig}
+                        />
+                      )}
 
-                      <TemplateConfigurator
-                        title="3. Status — Modelo API Oficial"
-                        templateKey="status_oficial"
-                        instanceId="2"
-                        config={localConfig}
-                        updateTemplate={updateTemplate}
-                        workflows={workflows2}
-                        workflowSearch={workflowSearch}
-                        handleWorkflowSearch={handleWorkflowSearch}
-                        nodeSearch={nodeSearch}
-                        handleNodeSearch={handleNodeSearch}
-                        getFilteredNodes={getFilteredNodes}
-                        toggleEditableNode={toggleEditableNode}
-                        workflowDetails={workflowDetails}
-                        getNodeEditableParams={getNodeEditableParams}
-                        updateNodeParamConfig={updateNodeParamConfig}
-                        setLocalConfig={setLocalConfig}
-                      />
+                      {activeModel === 'oficial' && (
+                        <TemplateConfigurator
+                          title="Status — API Oficial"
+                          templateKey="status_oficial"
+                          instanceId="2"
+                          config={localConfig}
+                          updateTemplate={updateTemplate}
+                          workflows={workflows2}
+                          workflowSearch={workflowSearch}
+                          handleWorkflowSearch={handleWorkflowSearch}
+                          nodeSearch={nodeSearch}
+                          handleNodeSearch={handleNodeSearch}
+                          getFilteredNodes={getFilteredNodes}
+                          toggleEditableNode={toggleEditableNode}
+                          workflowDetails={workflowDetails}
+                          getNodeEditableParams={getNodeEditableParams}
+                          updateNodeParamConfig={updateNodeParamConfig}
+                          setLocalConfig={setLocalConfig}
+                        />
+                      )}
                     </div>
                   </div>
+
                 </div>
               )}
             </>
