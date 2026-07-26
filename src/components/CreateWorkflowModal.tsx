@@ -214,6 +214,14 @@ const CreateWorkflowModal: React.FC<CreateWorkflowModalProps> = ({
         return tc;
     };
 
+    const getFormattedTemplateName = (meta: typeof FIXED_TEMPLATES[0], templateConfig: any) => {
+        const baseName = templateConfig?.label || meta.name;
+        const modelTag = selectedModelType === 'uazapi' ? 'Uazapi' : selectedModelType === 'ycloud' ? 'YCloude' : 'API Oficial';
+        const hasModelInName = /uazapi|ycloud|ycloude|oficial|api oficial/i.test(baseName);
+        if (hasModelInName) return baseName;
+        return `${baseName} - ${modelTag}`;
+    };
+
     const getEditableParams = (node: any) => {
         const editables: { path: string, label: string, value: any }[] = [];
         const targetKeys = ['value', 'text', 'column', 'property', 'key', 'expression', 'httpmethod', 'path', 'url', 'method', 'resource'];
@@ -440,9 +448,11 @@ const CreateWorkflowModal: React.FC<CreateWorkflowModalProps> = ({
             const localEdits = editedWorkflows[meta.key];
             if (!localEdits) continue; // Safety check
 
-            // Personaliza o nome da cópia
-            const templateConfigLabel = config?.[meta.instanceId]?.templates?.[meta.key]?.label || meta.name;
-            const finalFlowName = `${globalNamePrefix.trim()} - ${templateConfigLabel}`;
+            // Personaliza o nome da cópia incluindo a indicação do modelo (Uazapi / YCloude / API Oficial)
+            const templateConfig = config?.[meta.instanceId]?.templates?.[meta.key];
+            const formattedLabel = getFormattedTemplateName(meta, templateConfig);
+            const prefix = globalNamePrefix.trim() ? `${globalNamePrefix.trim()} - ` : '';
+            const finalFlowName = `${prefix}${formattedLabel}`;
 
             payloads.push({
                 ...localEdits, // contém o id do nó etc
@@ -657,7 +667,7 @@ const CreateWorkflowModal: React.FC<CreateWorkflowModalProps> = ({
                                                             <Icon path={ICON_DATABASE} className="w-3 h-3" />
                                                         </div>
                                                         <h4 className={`font-bold text-sm tracking-tight ${isChecked ? 'text-gray-900' : 'text-gray-600'}`}>
-                                                            {templateConfig?.label || meta.name}
+                                                            {getFormattedTemplateName(meta, templateConfig)}
                                                         </h4>
                                                     </div>
                                                     <p className="text-[9px] text-gray-400 font-bold tracking-wider mt-1 ml-[40px] uppercase">
