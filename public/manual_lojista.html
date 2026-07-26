@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manual do Lojista - n8n Controller</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #2563eb;
+            --secondary: #4f46e5;
+            --dark: #0f172a;
+            --text: #334155;
+            --bg: #ffffff;
+            --accent: #f8fafc;
+            --success: #22c55e;
+            --error: #ef4444;
+        }
+        * { box-sizing: border-box; }
+        body {
+            font-family: 'Inter', sans-serif;
+            color: var(--text);
+            line-height: 1.6;
+            margin: 0;
+            background: var(--bg);
+            -webkit-print-color-adjust: exact;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 40px;
+        }
+        header {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            padding: 80px 40px;
+            border-radius: 0 0 32px 32px;
+            margin-bottom: 50px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(37, 99, 235, 0.15);
+        }
+        h1 {
+            font-family: 'Outfit', sans-serif;
+            font-size: 3.5rem;
+            margin: 0;
+            font-weight: 800;
+        }
+        h2 {
+            font-family: 'Outfit', sans-serif;
+            font-size: 2.2rem;
+            color: var(--dark);
+            border-bottom: 3px solid var(--accent);
+            padding-bottom: 12px;
+            margin-top: 70px;
+            display: flex;
+            align-items: center;
+        }
+        h2::before {
+            content: '';
+            width: 10px;
+            height: 40px;
+            background: var(--primary);
+            margin-right: 18px;
+            border-radius: 5px;
+        }
+        h3 {
+            font-size: 1.6rem;
+            color: var(--primary);
+            margin-top: 45px;
+            font-weight: 700;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 40px 0;
+            background: white;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+        }
+        th, td {
+            padding: 18px;
+            text-align: center;
+            border-bottom: 1px solid #f1f5f9;
+        }
+        th {
+            background: #f8fafc;
+            color: var(--dark);
+            font-weight: 700;
+        }
+        td:first-child, th:first-child {
+            text-align: left;
+            padding-left: 25px;
+        }
+        .check { color: var(--success); font-weight: bold; font-size: 1.2rem; }
+        .cross { color: var(--error); font-weight: bold; font-size: 1.2rem; }
+        
+        .image-container {
+            background: var(--accent);
+            padding: 15px;
+            border-radius: 20px;
+            margin: 30px 0;
+            border: 1px solid #e2e8f0;
+        }
+        img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            display: block;
+            margin: 0 auto;
+        }
+        .badge {
+            background: var(--primary);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            display: inline-block;
+            margin-bottom: 10px;
+        }
+        footer {
+            margin-top: 100px;
+            text-align: center;
+            font-size: 1rem;
+            color: #94a3b8;
+            padding: 50px 0;
+            border-top: 2px solid var(--accent);
+        }
+        @media print {
+            header { border-radius: 0; box-shadow: none; }
+            .container { padding: 0; width: 100% !important; max-width: 100% !important; }
+            h2 { page-break-before: always; }
+            img { break-inside: avoid; }
+            table { box-shadow: none; border: 1px solid #e2e8f0; }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Manual do Lojista</h1>
+        <p style="font-size: 1.5rem; opacity: 0.9;">Guia Completo para Automação de Vendas</p>
+    </header>
+
+    <div class="container">
+        
+        <section>
+            <h2>1. Conexão do WhatsApp</h2>
+            <p>O primeiro passo é garantir que seu dispositivo esteja pareado corretamente.</p>
+            <div class="image-container">
+                <img src="/docs_assets/lojista_whatsapp_status_1773749992035.png" alt="Status">
+            </div>
+            <ul>
+                <li><b>Verificação de Status</b>: O ícone verde "ON" confirma que o robô está ativo.</li>
+                <li><b>Troca de Aparelho</b>: Use o botão de desconectar caso precise ler o QR Code novamente.</li>
+            </ul>
+        </section>
+
+        <section>
+            <h2>2. Comparativo de Planos</h2>
+            <p>Escolha o plano que melhor se adapta à escala do seu negócio.</p>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Funcionalidade</th>
+                        <th>Básico</th>
+                        <th>Avançado</th>
+                        <th>Premium</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Mensagens (Texto)</td>
+                        <td class="check">✅</td>
+                        <td class="check">✅</td>
+                        <td class="check">✅</td>
+                    </tr>
+                    <tr>
+                        <td>Inteligência Artificial</td>
+                        <td class="cross">❌</td>
+                        <td class="check">✅</td>
+                        <td class="check">✅</td>
+                    </tr>
+                    <tr>
+                        <td>Recuperador de Cliente</td>
+                        <td class="cross">❌</td>
+                        <td class="cross">❌</td>
+                        <td class="check">✅</td>
+                    </tr>
+                    <tr>
+                        <td>Lembrete (Abertura)</td>
+                        <td class="cross">❌</td>
+                        <td class="cross">❌</td>
+                        <td class="check">✅</td>
+                    </tr>
+                    <tr>
+                        <td>Fotos nas Mensagens</td>
+                        <td class="cross">❌</td>
+                        <td class="cross">❌</td>
+                        <td class="check">✅</td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+
+        <section>
+            <h2>3. Configuração de Atendimento</h2>
+            <p>Personalize a forma como o robô interage com seus clientes.</p>
+            <div class="image-container">
+                <img src="/docs_assets/lojista_dashboard_main_1773749990432.png" alt="Mensagens">
+            </div>
+            <ul>
+                <li><span class="badge">Básico / Avançado / Premium</span> <b>Mensagem de Saudação</b>: Texto de boas-vindas enviado automaticamente.</li>
+                <li><span class="badge">Avançado / Premium</span> <b>Inteligência Artificial</b>: Robô entende gírias e pedidos complexos.</li>
+                <li><span class="badge">Premium</span> <b>Imagens</b>: Anexe fotos de promoções ou do cardápio diretamente na saudação.</li>
+            </ul>
+        </section>
+
+        <section>
+            <h2>4. Funções de Reengajamento</h2>
+            <div class="badge" style="background: #4f46e5;">Exclusivo Plano Premium</div>
+            <p>Automações inteligentes para recuperar vendas perdidas.</p>
+            <div class="image-container">
+                <img src="/docs_assets/lojista_recuperador_1773749992891.png" alt="Reengajamento">
+            </div>
+            
+            <h3>4.1 Lembrete de Cliente (Abertura)</h3>
+            <p>O robô avisa que a loja abriu para todos os clientes que enviaram mensagem quando você estava fechado, já enviando o link do cardápio.</p>
+            
+            <h3>4.2 Recuperador de Cliente</h3>
+            <p>O sistema "pesca" clientes antigos que não compram há alguns dias, incentivando um novo pedido de forma natural e amigável.</p>
+        </section>
+
+        <footer>
+            <p>© 2026 n8n Controller SaaS • Manual do Parceiro Lojista</p>
+        </footer>
+    </div>
+
+</body>
+</html>

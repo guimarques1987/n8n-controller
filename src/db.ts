@@ -1,9 +1,23 @@
 import { Pool } from 'pg';
-import Database from 'better-sqlite3';
+// better-sqlite3 import moved to dynamic inside setupDatabase for better bundling
 import dotenv from 'dotenv';
 import bcrypt from 'bcryptjs';
+import path from 'path';
+import fs from 'fs';
 
-dotenv.config();
+// Carrega .env com path explícito para garantir funcionamento em qualquer cwd
+const _envPath = path.join(process.cwd(), '.env');
+if (fs.existsSync(_envPath)) {
+  dotenv.config({ path: _envPath });
+} else {
+  // Fallback: tenta carregar do diretório pai (caso o bundle esteja em subpasta)
+  const _parentEnvPath = path.join(process.cwd(), '..', '.env');
+  if (fs.existsSync(_parentEnvPath)) {
+    dotenv.config({ path: _parentEnvPath });
+  } else {
+    dotenv.config(); // último recurso
+  }
+}
 
 let pool: Pool | null = null;
 let sqlite: any = null;
@@ -16,16 +30,19 @@ function setupDatabase() {
   if (dbUrl.startsWith('sqlite://')) {
     const filename = dbUrl.replace('sqlite://', '');
     console.log(`Initializing SQLite database: ${filename}`);
-    sqlite = new Database(filename);
+// Fallback code removed for better-sqlite3
     return;
   }
 
   try {
     console.log('Initializing PostgreSQL pool...');
+    console.log('[DB] Connecting to:', dbUrl.replace(/:[^:@]+@/, ':***@')); // log sem senha
     pool = new Pool({
       connectionString: dbUrl,
       ssl: dbUrl.includes('supabase.co') ? { rejectUnauthorized: false } : false,
-      connectionTimeoutMillis: 5000,
+      connectionTimeoutMillis: 15000, // 15s para suportar latência de rede em containers
+      idleTimeoutMillis: 30000,
+      max: 10,
     });
 
     pool.on('error', (err) => {
@@ -33,16 +50,19 @@ function setupDatabase() {
     });
   } catch (e) {
     console.error("Failed to create PG pool, falling back to SQLite", e);
-    sqlite = new Database('local.db');
+    console.error('Failed to load better-sqlite3 fallback (SQLite module removed)');
   }
 
   if (extDbUrl) {
     try {
       console.log('Initializing external PostgreSQL pool...');
+      console.log('[DB] External connecting to:', extDbUrl.replace(/:[^:@]+@/, ':***@'));
       externalPool = new Pool({
         connectionString: extDbUrl,
         ssl: extDbUrl.includes('supabase.co') ? { rejectUnauthorized: false } : false,
-        connectionTimeoutMillis: 5000,
+        connectionTimeoutMillis: 15000,
+        idleTimeoutMillis: 30000,
+        max: 10,
       });
       externalPool.on('error', (err) => console.error('External PG error', err));
     } catch (e) {
@@ -119,21 +139,23 @@ export const initDb = async () => {
       await query(`ALTER TABLE instances ADD COLUMN webhook_url TEXT`);
     } catch (_) { /* coluna já existe — ignorar erro */ }
 
-    // Initialize default instances if they don't exist
-    const res = await query('SELECT * FROM instances WHERE id IN ($1, $2)', ['1', '2']);
-    if (res.rowCount === 0) {
-      console.log('Seeding default instances...');
-      await query(`
-        INSERT INTO instances (id, base_url, api_key, templates, webhook_url)
-        VALUES 
-          ('1', '', '', '[]'::jsonb, null),
-          ('2', 'https://n8npro.gdautomacao.com', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJmYjA2ODM3OS1jZDM3LTQxMWItOTVkYy1iNDBhZTQ0OWQ3NmIiLCJpc3MiOiJuOG4iLCJhdWQiOiJwdWJsaWMtYXBpIiwianRpIjoiYjE0NGU2ZmYtNzEwYS00YjY0LTk0YjEtZGY2ODk5NTE0YWJjIiwiaWF0IjoxNzcxNjg1MTE5fQ.SIF0bqobw-YzEZewboZazwou2gEi6TuIsFr-f6TIzaQ', '[]'::jsonb, null)
-        ON CONFLICT (id) DO NOTHING;
-      `);
-      console.log('Initialized default instances in DB');
-    } else {
-      console.log('Instances already exist in DB');
-    }
+    // Always upsert instances so env var keys are always applied
+    console.log('Upserting default instances from env vars...');
+    await query(`
+      INSERT INTO instances (id, base_url, api_key, templates, webhook_url)
+      VALUES 
+        ('1', $1, $2, '{}'::jsonb, null),
+        ('2', $3, $4, '{}'::jsonb, null)
+      ON CONFLICT (id) DO UPDATE SET 
+        base_url = EXCLUDED.base_url,
+        api_key = EXCLUDED.api_key;
+    `, [
+      process.env.N8N_INSTANCE_1_URL || 'https://n8n.cardapioclick.com.br',
+      process.env.N8N_INSTANCE_1_KEY || '',
+      process.env.N8N_INSTANCE_2_URL || 'https://n8npro.gdautomacao.com',
+      process.env.N8N_INSTANCE_2_KEY || ''
+    ]);
+      console.log('Instances upserted successfully');
 
     // Tabela de usuários (SaaS)
     await query(`
@@ -153,30 +175,31 @@ export const initDb = async () => {
     } catch (_) { /* coluna já existe */ }
 
     // Seed do admin padrão
-    const adminCheck = await query('SELECT id FROM users WHERE email = $1', ['guimarques1987etc@gmail.com']);
+    const ADMIN_EMAIL = 'guimarques1987etc@gmail.com';
+    const ADMIN_NAME  = 'Guilherme Marques';
+    const ADMIN_PASS  = '131199@Gui';
+    const adminCheck = await query('SELECT id FROM users WHERE email = $1', [ADMIN_EMAIL]);
     if (adminCheck.rowCount === 0) {
-      const hash = bcrypt.hashSync('131199@Gui', 10);
+      const hash = bcrypt.hashSync(ADMIN_PASS, 10);
       try {
-        // Tenta com gen_random_uuid (PostgreSQL)
         await query(
           `INSERT INTO users (id, email, password_hash, role, name) VALUES (gen_random_uuid()::text, $1, $2, 'admin', $3) ON CONFLICT (email) DO NOTHING`,
-          ['guimarques1987etc@gmail.com', hash, 'Administrador']
+          [ADMIN_EMAIL, hash, ADMIN_NAME]
         );
       } catch (_) {
-        // Fallback para SQLite com UUID manual
         const uuid = `admin-${Date.now()}`;
         await query(
           `INSERT INTO users (id, email, password_hash, role, name) VALUES ($1, $2, $3, 'admin', $4) ON CONFLICT (email) DO NOTHING`,
-          [uuid, 'guimarques1987etc@gmail.com', hash, 'Administrador']
+          [uuid, ADMIN_EMAIL, hash, ADMIN_NAME]
         );
       }
-      console.log('Admin user seeded.');
+      console.log(`Admin user seeded (${ADMIN_EMAIL}).`);
     }
 
     // Tabela de configuração do robô WhatsApp
     const isPgExt = !!externalPool || !!pool;
-    const extQueryFn = externalPool ? externalQuery : query;
-    await extQueryFn(`
+
+    const configRoboSchema = `
       CREATE TABLE IF NOT EXISTS config_robo (
         id ${isPgExt ? 'SERIAL' : 'INTEGER'} PRIMARY KEY,
         lojista_id TEXT NOT NULL UNIQUE,
@@ -192,15 +215,20 @@ export const initDb = async () => {
         "qtd-dias" INTEGER DEFAULT 0,
         "qtd-dias-maximo" INTEGER DEFAULT 0,
         "status-lembrete" INTEGER DEFAULT 0,
+        "recuperador-msg" TEXT DEFAULT '',
+        "lembrar-cliente" TEXT DEFAULT '',
+        "msg-paga" INTEGER DEFAULT 0,
         workflow_id TEXT,
         instance_id TEXT,
         webhook_url TEXT,
         updated_at ${isPgExt ? 'TIMESTAMPTZ DEFAULT NOW()' : 'TEXT DEFAULT current_timestamp'}
       );
-    `);
+    `;
+
+    await runOnAll(configRoboSchema);
 
     // Tabela para múltiplos fluxos vinculados
-    await extQueryFn(`
+    await runOnAll(`
       CREATE TABLE IF NOT EXISTS lojista_workflows (
         id ${isPgExt ? 'SERIAL' : 'INTEGER'} PRIMARY KEY,
         lojista_id TEXT NOT NULL,
@@ -214,27 +242,48 @@ export const initDb = async () => {
 
     // Migração de BOOLEAN para INTEGER no PostgreSQL se necessário
     if (isPgExt) {
-      try {
-        await extQueryFn(`
-          ALTER TABLE config_robo 
-          ALTER COLUMN "ativa-robo" TYPE INTEGER USING "ativa-robo"::integer,
-          ALTER COLUMN "ativa-ia" TYPE INTEGER USING "ativa-ia"::integer;
-        `);
-      } catch (err) { /* Coluna já pode ser integer ou comando falhou silenciosamente */ }
+      await runOnAll(`
+        ALTER TABLE config_robo 
+        ALTER COLUMN "ativa-robo" TYPE INTEGER USING "ativa-robo"::integer;
+      `);
+      // A segunda alteração de ativa-ia pode falhar se a coluna não existir ainda,
+      // então rodaremos os ADD COLUMN primeiro.
     }
 
-    try { await extQueryFn(`ALTER TABLE config_robo ADD COLUMN "status-recuperador" INTEGER DEFAULT 0`); } catch (err) { }
-    try { await extQueryFn(`ALTER TABLE config_robo ADD COLUMN "qtd-dias" INTEGER DEFAULT 0`); } catch (err) { }
-    try { await extQueryFn(`ALTER TABLE config_robo ADD COLUMN "qtd-dias-maximo" INTEGER DEFAULT 0`); } catch (err) { }
-    try { await extQueryFn(`ALTER TABLE config_robo ADD COLUMN "status-lembrete" INTEGER DEFAULT 0`); } catch (err) { }
-    try { await extQueryFn(`ALTER TABLE config_robo ADD COLUMN "workflow_id" TEXT`); } catch (err) { }
-    try { await extQueryFn(`ALTER TABLE config_robo ADD COLUMN "instance_id" TEXT`); } catch (err) { }
-    try { await extQueryFn(`ALTER TABLE config_robo ADD COLUMN "webhook_url" TEXT`); } catch (err) { }
+    // Garante que todas as colunas existem (Migrações progressivas)
+    await runOnAll(`ALTER TABLE config_robo ADD COLUMN IF NOT EXISTS "ativa-robo" INTEGER DEFAULT 1`);
+    await runOnAll(`ALTER TABLE config_robo ADD COLUMN IF NOT EXISTS "ativa-ia" INTEGER DEFAULT 1`);
+    await runOnAll(`ALTER TABLE config_robo ADD COLUMN IF NOT EXISTS "msg-saudacao" TEXT DEFAULT ''`);
+    await runOnAll(`ALTER TABLE config_robo ADD COLUMN IF NOT EXISTS "msg-despedida" TEXT DEFAULT ''`);
+    await runOnAll(`ALTER TABLE config_robo ADD COLUMN IF NOT EXISTS "msg-fechado" TEXT DEFAULT ''`); // fallback redundante
+    await runOnAll(`ALTER TABLE config_robo ADD COLUMN IF NOT EXISTS "link-foto-aberto" TEXT DEFAULT ''`);
+    await runOnAll(`ALTER TABLE config_robo ADD COLUMN IF NOT EXISTS "link-foto-fechado" TEXT DEFAULT ''`);
+    await runOnAll(`ALTER TABLE config_robo ADD COLUMN IF NOT EXISTS "tipo_mensagem_aberto" TEXT DEFAULT 'texto'`);
+    await runOnAll(`ALTER TABLE config_robo ADD COLUMN IF NOT EXISTS "tipo_mensagem_fechado" TEXT DEFAULT 'texto'`);
+    await runOnAll(`ALTER TABLE config_robo ADD COLUMN IF NOT EXISTS "status-recuperador" INTEGER DEFAULT 0`);
+    await runOnAll(`ALTER TABLE config_robo ADD COLUMN IF NOT EXISTS "qtd-dias" INTEGER DEFAULT 0`);
+    await runOnAll(`ALTER TABLE config_robo ADD COLUMN IF NOT EXISTS "qtd-dias-maximo" INTEGER DEFAULT 0`);
+    await runOnAll(`ALTER TABLE config_robo ADD COLUMN IF NOT EXISTS "status-lembrete" INTEGER DEFAULT 0`);
+    await runOnAll(`ALTER TABLE config_robo ADD COLUMN IF NOT EXISTS "recuperador-msg" TEXT DEFAULT ''`);
+    await runOnAll(`ALTER TABLE config_robo ADD COLUMN IF NOT EXISTS "lembrar-cliente" TEXT DEFAULT ''`);
+    await runOnAll(`ALTER TABLE config_robo ADD COLUMN IF NOT EXISTS "msg-paga" INTEGER DEFAULT 0`);
+    await runOnAll(`ALTER TABLE config_robo ADD COLUMN IF NOT EXISTS "horario-recuperador" TEXT DEFAULT ''`);
+    await runOnAll(`ALTER TABLE config_robo ADD COLUMN IF NOT EXISTS "workflow_id" TEXT`);
+    await runOnAll(`ALTER TABLE config_robo ADD COLUMN IF NOT EXISTS "instance_id" TEXT`);
+    await runOnAll(`ALTER TABLE config_robo ADD COLUMN IF NOT EXISTS "webhook_url" TEXT`);
+
+    // Casting if they were boolean (now that we're sure they exist)
+    if (isPgExt) {
+      await runOnAll(`
+        ALTER TABLE config_robo 
+        ALTER COLUMN "ativa-ia" TYPE INTEGER USING "ativa-ia"::integer;
+      `);
+    }
 
     // Migração inicial de config_robo para lojista_workflows se houver dados antigos
     try {
       if (isPgExt) {
-        await extQueryFn(`
+        await runOnAll(`
           INSERT INTO lojista_workflows (lojista_id, workflow_id, instance_id, webhook_url, workflow_name)
           SELECT lojista_id, workflow_id, instance_id, webhook_url, 'Fluxo Principal'
           FROM config_robo
@@ -248,8 +297,148 @@ export const initDb = async () => {
       }
     } catch (e) { /* Migração falhou ou já ocorreu */ }
 
+    // --- MIGRATION: Tabela "Clientes" (Banco Externo) ---
+    if (externalPool) {
+      console.log('Verificando migrações na tabela Clientes (Banco Externo)...');
+      try {
+        // Garante colunas essenciais
+        const columns = [
+          { name: 'ativa-robo', type: 'INTEGER DEFAULT 1' },
+          { name: 'ativa-ia', type: 'INTEGER DEFAULT 1' },
+          { name: 'msg-saudacao', type: 'TEXT DEFAULT \'\'' },
+          { name: 'msg-despedida', type: 'TEXT DEFAULT \'\'' },
+          { name: 'link-foto-aberto', type: 'TEXT DEFAULT \'\'' },
+          { name: 'link-foto-fechado', type: 'TEXT DEFAULT \'\'' },
+          { name: 'tipo_mensagem_aberto', type: 'TEXT DEFAULT \'texto\'' },
+          { name: 'tipo_mensagem_fechado', type: 'TEXT DEFAULT \'texto\'' },
+          { name: 'status-recuperador', type: 'INTEGER DEFAULT 0' },
+          { name: 'status-lembrete', type: 'INTEGER DEFAULT 0' },
+          { name: 'qtd-dias', type: 'INTEGER DEFAULT 0' },
+          { name: 'qtd-dias-maximo', type: 'INTEGER DEFAULT 0' },
+          { name: 'recuperador-msg', type: 'TEXT DEFAULT \'\'' },
+          { name: 'lembrar-cliente', type: 'TEXT DEFAULT \'\'' },
+          { name: 'google_api_key', type: 'TEXT DEFAULT \'\'' },
+          { name: 'plano', type: 'TEXT DEFAULT \'basico\'' },
+          { name: 'msg-paga', type: 'INTEGER DEFAULT 0' },
+          { name: 'horario-recuperador', type: 'TEXT DEFAULT \'\'' }
+        ];
+
+        for (const col of columns) {
+          try {
+            await externalQuery(`ALTER TABLE "Clientes" ADD COLUMN IF NOT EXISTS "${col.name}" ${col.type}`);
+          } catch (err: any) {
+             // Se falhar porque já existe ou outro erro, logamos discretamente
+             // console.log(`Nota: Coluna ${col.name} já existe ou erro: ${err.message}`);
+          }
+        }
+        
+        // Conversão de tipo se necessário (ex: de BOOLEAN/TEXT para INTEGER para ativa-ia)
+        try {
+          await externalQuery(`ALTER TABLE "Clientes" ALTER COLUMN "ativa-ia" TYPE INTEGER USING "ativa-ia"::integer`);
+        } catch (_) {}
+
+        console.log('✅ Migrações da tabela Clientes concluídas.');
+      } catch (err: any) {
+        console.error('Erro ao migrar a tabela Clientes:', err.message);
+      }
+    }
+
+    // Provisionar tabelas de lojas automaticamente (Background)
+    provisionShops();
 
   } catch (err) {
     console.error('Error initializing DB:', err);
+  }
+};
+
+// Helper to run migration on both internal and external pools if they exist
+const runOnAll = async (sql: string, params: any[] = []) => {
+  try { await query(sql, params); } catch (e) { /* silent fail on one if it exists or fails */ }
+  if (externalPool) {
+    try { await externalQuery(sql, params); } catch (e) { /* silent fail */ }
+  }
+};
+
+/**
+ * Converte nomes de estabelecimentos em nomes de tabelas válidos.
+ * Ex: "Hamburgueria São Paulo" -> "hamburgueriasaopaulo"
+ */
+export const slugify = (text: string): string => {
+  if (!text) return '';
+  return text
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '') // Remove acentos
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, ''); // Remove tudo que não for letra ou número
+};
+
+export const provisionShops = async () => {
+  if (!externalPool) return;
+  try {
+    // Listar tabelas para conferência
+    const { rows: publicTables } = await externalQuery("SELECT table_name FROM information_schema.tables WHERE table_schema = 'public'");
+    const tableNames = publicTables.map((t: any) => t.table_name);
+    
+    // Log para debug se necessário
+    if (tableNames.length === 0) {
+      console.warn('[PROVISION] ATENÇÃO: Nenhuma tabela encontrada no schema public!');
+    }
+
+    // Determinar o nome correto (preferindo "Clientes" com C maiúsculo se existir)
+    const targetTable = tableNames.find(n => n.toLowerCase() === 'clientes') || 'Clientes';
+    const quotedTable = `"${targetTable}"`;
+
+    const { rows: clientes } = await externalQuery(`SELECT id, "nome-estabelecimento" FROM ${quotedTable} WHERE "nome-estabelecimento" IS NOT NULL`);
+    
+    let createdCount = 0;
+    for (const cliente of clientes) {
+      const rawName = cliente['nome-estabelecimento'];
+      const lojistaId = String(cliente.id);
+      const slug = slugify(rawName);
+
+      if (!slug) continue;
+
+      // 1. Criar a tabela da loja se não existir no banco EXTERNO (mestre)
+      const shopTableSchema = `
+        CREATE TABLE IF NOT EXISTS "${slug}" (
+          "id" SERIAL PRIMARY KEY,
+          "celular" TEXT,
+          "Nome Cliente" TEXT,
+          "MSG 1" TEXT,
+          "MSG 2" TEXT,
+          "Data compra" TEXT,
+          "Estabelecimento" TEXT,
+          "MSG enviada" TEXT
+        );
+      `;
+      
+      try {
+        const checkTb = await query(`SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' AND table_name = $1`, [slug]);
+        if (checkTb.rowCount === 0) {
+          await query(shopTableSchema); 
+          createdCount++;
+          console.log(`✅ [PROVISION] Nova tabela garantida no BD local para: ${slug}`);
+        }
+      } catch (err: any) {
+        console.error(`[PROVISION] Erro ao criar tabela para ${slug}:`, err.message);
+      }
+
+      // 2. Garantir entrada na config_robo
+      try {
+        await runOnAll(`
+          INSERT INTO config_robo (lojista_id, "ativa-robo", "ativa-ia")
+          VALUES ($1, 1, 1)
+          ON CONFLICT (lojista_id) DO NOTHING
+        `, [lojistaId]);
+      } catch (err: any) {
+        console.error(`[PROVISION] Erro ao criar config_robo para ${lojistaId}:`, err.message);
+      }
+    }
+
+    if (createdCount > 0) {
+       console.log(`✅ [AUTO-PROVISION] Realizado o auto-provisionamento de ${createdCount} nova(s) loja(s).`);
+    }
+  } catch (err: any) {
+    console.error('[PROVISION] Erro crítico na rotina de provisionamento:', err.message);
   }
 };

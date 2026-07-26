@@ -31,6 +31,7 @@ export const LOGIN_UI_CONFIG = {
     // Visuais
     corFundoDefault: '#0B0F19',
     btnGradient: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
+    btnBackground: '#6366f1',
     btnColor: '#ffffff',
     cardBackground: 'rgba(255,255,255,0.06)',
     cardBorder: '1px solid rgba(255,255,255,0.13)',
@@ -39,7 +40,7 @@ export const LOGIN_UI_CONFIG = {
     fontFamily: "'Inter', -apple-system, sans-serif",
     spacingCardPadding: '0 28px 32px',
     spacingLogoMargin: '36px 36px 28px',
-    
+
     // Cores Textos e Abas
     corTitulo: '#ffffff',
     corSubtitulo: 'rgba(255,255,255,0.5)',
@@ -49,11 +50,12 @@ export const LOGIN_UI_CONFIG = {
     corAbasTextoAtiva: '#6366f1',
     corLabels: 'rgba(255,255,255,0.7)',
     corRodape: 'rgba(255,255,255,0.3)',
-    
+
     // Inputs
     inputBackground: 'rgba(255,255,255,0.08)',
     inputBorder: '1px solid rgba(255,255,255,0.12)',
     inputText: '#ffffff',
+    logoSize: 64,
 };
 
 export default function LoginPage() {
@@ -65,11 +67,12 @@ export default function LoginPage() {
     const [showPassword, setShowPassword] = useState(false);
     const [loginLoading, setLoginLoading] = useState(false);
     const [loginError, setLoginError] = useState('');
-    const [loginConfig, setLoginConfig] = useState<typeof LOGIN_UI_CONFIG & { urlLogo?: string, titulo?: string, corFundo?: string }>({ 
-        urlLogo: '', 
-        titulo: LOGIN_UI_CONFIG.tituloDefault, 
+    const [loginConfig, setLoginConfig] = useState<typeof LOGIN_UI_CONFIG & { urlLogo?: string, titulo?: string, corFundo?: string, logoSize?: number }>({
+        urlLogo: '',
+        titulo: LOGIN_UI_CONFIG.tituloDefault,
         corFundo: LOGIN_UI_CONFIG.corFundoDefault,
-        ...LOGIN_UI_CONFIG 
+        logoSize: LOGIN_UI_CONFIG.logoSize,
+        ...LOGIN_UI_CONFIG
     });
 
     useEffect(() => {
@@ -232,19 +235,19 @@ export default function LoginPage() {
                 <div style={s({ padding: loginConfig.spacingLogoMargin, textAlign: 'center' })}>
                     {loginConfig.urlLogo ? (
                         <div style={s({
-                            width: 64, height: 64, margin: '0 auto 20px',
+                            width: loginConfig.logoSize || 64, height: loginConfig.logoSize || 64, margin: '0 auto 20px',
                             display: 'flex', alignItems: 'center', justifyContent: 'center',
                         })}>
-                            <img src={loginConfig.urlLogo} alt="Logo" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
+                            <img src={loginConfig.urlLogo.startsWith('data:') || loginConfig.urlLogo.startsWith('http') || loginConfig.urlLogo.startsWith('/') ? loginConfig.urlLogo : `data:image/jpeg;base64,${loginConfig.urlLogo}`} alt="Logo" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
                         </div>
                     ) : (
                         <div style={s({
-                            width: 64, height: 64, borderRadius: 18, margin: '0 auto 20px',
+                            width: loginConfig.logoSize || 64, height: loginConfig.logoSize || 64, borderRadius: (loginConfig.logoSize || 64) * 0.28, margin: '0 auto 20px',
                             background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
                             display: 'flex', alignItems: 'center', justifyContent: 'center',
                             boxShadow: '0 8px 24px rgba(99,102,241,0.4)',
                         })}>
-                            <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                            <svg width={(loginConfig.logoSize || 64) * 0.47} height={(loginConfig.logoSize || 64) * 0.47} viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                                 <rect x="2" y="3" width="20" height="14" rx="2" ry="2" />
                                 <line x1="8" y1="21" x2="16" y2="21" />
                                 <line x1="12" y1="17" x2="12" y2="21" />

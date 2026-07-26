@@ -94,11 +94,24 @@ export default function FolderView({ workflows, projects, onToggle, onDelete, on
                     const method = (node.parameters?.httpMethod || 'GET').toUpperCase();
                     const url = `${n8nBaseUrl}/webhook/${path}`;
                     return (
-                        <div key={idx} className="mt-1 flex items-center text-xs text-gray-500 bg-gray-50 p-1 rounded border border-gray-200">
-                            <span className="font-bold mr-1 px-1 bg-gray-200 rounded">{method}</span>
-                            <span className="truncate max-w-[150px] mr-2">{url}</span>
-                            <button onClick={() => handleCopy(url)} className="ml-auto p-0.5 rounded hover:bg-gray-200">
-                                {copiedUrl === url ? <Check className="h-3 w-3 text-green-500" /> : <Copy className="h-3 w-3 text-gray-400" />}
+                        <div key={idx} className="mt-2 flex flex-col xl:flex-row xl:items-center gap-3 text-xs text-gray-500 bg-gray-50 p-3 rounded-xl border border-gray-200 shadow-sm hover:border-indigo-300 transition-colors">
+                            <div className="flex items-center gap-3 flex-grow min-w-0">
+                                <span className="font-bold px-2 py-1 bg-gray-200 text-gray-700 rounded-md text-[10px] flex-shrink-0 font-mono">
+                                    {method}
+                                </span>
+                                <span className="font-mono text-[12px] text-gray-600 break-all" title={url}>
+                                    {url}
+                                </span>
+                            </div>
+                            <button
+                                onClick={() => handleCopy(url)}
+                                className={`flex-shrink-0 px-4 py-2 rounded-lg border shadow-sm transition-all flex items-center justify-center gap-2 ${copiedUrl === url ? 'bg-green-50 border-green-200 text-green-600' : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50 hover:text-indigo-600 hover:border-indigo-200 active:scale-95'}`}
+                            >
+                                {copiedUrl === url ? (
+                                    <><Check className="h-4 w-4" /><span className="text-[11px] font-extrabold uppercase tracking-tight">Copiado!</span></>
+                                ) : (
+                                    <><Copy className="h-4 w-4" /><span className="text-[11px] font-extrabold uppercase tracking-tight">Copiar URL</span></>
+                                )}
                             </button>
                         </div>
                     );
@@ -106,24 +119,40 @@ export default function FolderView({ workflows, projects, onToggle, onDelete, on
             </td>
 
             {/* Status badge */}
-            <td className="px-2 py-3 text-center w-24 hidden sm:table-cell">
-                <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${workflow.active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
-                    {workflow.active ? 'Publicado' : 'Rascunho'}
+            <td className="px-3 py-4 text-center w-24 hidden lg:table-cell">
+                <span className={`text-[10px] px-3 py-1 rounded-full font-black uppercase tracking-widest border ${workflow.active ? 'bg-green-50 text-green-700 border-green-200' : 'bg-gray-50 text-gray-400 border-gray-200'}`}>
+                    {workflow.active ? 'Ativo' : 'OFF'}
                 </span>
             </td>
 
             {/* Ações */}
-            <td className="px-4 py-3 text-right w-28">
+            <td className="px-6 py-4 text-right w-64 min-w-[200px]">
                 <div className="flex items-center justify-end gap-2">
-                    <button onClick={() => onEdit(workflow)} className="p-1.5 rounded-lg text-indigo-500 hover:bg-indigo-50 hover:text-indigo-700 transition-colors" title="Editar Fluxo">
+                    <button
+                        onClick={() => onEdit(workflow)}
+                        className="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-100 transition-all active:scale-95 group"
+                        title="Editar Fluxo"
+                    >
                         <Pencil className="h-4 w-4" />
+                        <span className="text-[11px] font-black uppercase tracking-tight">Alterar</span>
                     </button>
                     {n8nBaseUrl && (
-                        <a href={`${n8nBaseUrl}/workflow/${workflow.id}`} target="_blank" rel="noopener noreferrer" className="p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors" title="Abrir no n8n">
+                        <a
+                            href={`${n8nBaseUrl}/workflow/${workflow.id}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-100 transition-all active:scale-95"
+                            title="Abrir no n8n"
+                        >
                             <ExternalLink className="h-4 w-4" />
+                            <span className="text-[11px] font-black uppercase tracking-tight">Abrir n8n</span>
                         </a>
                     )}
-                    <button onClick={() => onDelete(workflow.id)} className="p-1.5 rounded-lg text-red-400 hover:bg-red-50 hover:text-red-600 transition-colors" title="Excluir">
+                    <button
+                        onClick={() => onDelete(workflow.id)}
+                        className="p-2 rounded-xl text-red-400 hover:text-red-700 hover:bg-red-50 border border-transparent hover:border-red-100 transition-all active:scale-95"
+                        title="Excluir"
+                    >
                         <Trash2 className="h-4 w-4" />
                     </button>
                 </div>

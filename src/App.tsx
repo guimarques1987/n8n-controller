@@ -6,9 +6,12 @@ import EditWorkflowModal from './components/EditWorkflowModal';
 import SettingsModal from './components/SettingsModal';
 import ChangePasswordModal from './components/ChangePasswordModal';
 import RobotConfigPage from './components/RobotConfigPage';
+import MassMessagePage from './components/MassMessagePage';
 import LoginPage from './components/LoginPage';
 import AdminLoginConfig from './components/AdminLoginConfig';
 import AdminLojistaBots from './components/AdminLojistaBots';
+import AdminSystemUpdate from './components/AdminSystemUpdate';
+import AdminBackup from './components/AdminBackup';
 import { useAuth } from './contexts/AuthContext';
 import { getWorkflows, toggleWorkflow, createWorkflow, deleteWorkflow, getConfig, saveConfig, getWorkflow, updateWorkflow } from './services/n8n';
 import { Workflow, Tag, Project } from './types';
@@ -16,7 +19,7 @@ import { Workflow, Tag, Project } from './types';
 // ─── Dashboard (apenas renderizado quando autenticado) ────────────────────────
 function Dashboard() {
   const { user, logout } = useAuth();
-  const [activeTab, setActiveTab] = useState<'painel' | 'robo' | 'usuarios' | 'admin-login' | 'admin-bots'>(user?.role === 'lojista' ? 'robo' : 'painel');
+  const [activeTab, setActiveTab] = useState<'painel' | 'robo' | 'disparos' | 'usuarios' | 'admin-login' | 'admin-bots' | 'admin-sistema' | 'admin-backup'>(user?.role === 'lojista' ? 'robo' : 'painel');
   const [workflows1, setWorkflows1] = useState<Workflow[]>([]);
   const [workflows2, setWorkflows2] = useState<Workflow[]>([]);
   const [projects1, setProjects1] = useState<Project[]>([]);
@@ -35,6 +38,9 @@ function Dashboard() {
   const [dbConnected, setDbConnected] = useState<boolean>(false);
   const [editingWorkflow, setEditingWorkflow] = useState<Workflow | null>(null);
   const [editingInstanceId, setEditingInstanceId] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [showInstallBtn, setShowInstallBtn] = useState(false);
 
   const fetchConfig = async () => {
     try {
@@ -97,7 +103,29 @@ function Dashboard() {
   useEffect(() => {
     fetchConfig();
     fetchAll();
+
+    const handleBeforeInstallPrompt = (e: any) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+      setShowInstallBtn(true);
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    };
   }, []);
+
+  const handleInstallApp = async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    if (outcome === 'accepted') {
+      setShowInstallBtn(false);
+      setDeferredPrompt(null);
+    }
+  };
 
   const handleToggle = async (instanceId: string, id: string, active: boolean) => {
     const setWorkflows = instanceId === '1' ? setWorkflows1 : setWorkflows2;
@@ -184,13 +212,17 @@ function Dashboard() {
     } else if (statusFilter === 'draft') {
       filtered = filtered.filter(w => w.active === false);
     }
+    if (searchTerm.trim()) {
+      const term = searchTerm.toLowerCase();
+      filtered = filtered.filter(w => w.name.toLowerCase().includes(term));
+    }
     return filtered;
   };
 
   return (
     <div className="min-h-screen bg-gray-100">
-      <header className="bg-white shadow sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto py-4 px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row justify-between items-center gap-4">
+      <header className="bg-white shadow sticky top-0 z-10 w-full">
+        <div className="w-full mx-auto py-4 px-6 sm:px-8 lg:px-12 flex flex-col sm:flex-row justify-between items-center gap-4">
           <h1 className="text-2xl font-bold text-gray-900 flex items-center flex-wrap gap-2">
             <Server className="h-6 w-6 mr-1 text-indigo-600" />
             n8n Controller
@@ -202,6 +234,15 @@ function Dashboard() {
               <User className="h-3 w-3 mr-1" />
               {user!.name || user!.email} {user!.idLoja ? `(ID: ${user!.idLoja})` : ''} · {user!.role === 'admin' ? 'Admin' : 'Lojista'}
             </div>
+            {showInstallBtn && (
+              <button
+                onClick={handleInstallApp}
+                className="flex items-center px-2 py-1 rounded text-xs font-bold bg-green-600 text-white hover:bg-green-700 transition-colors shadow-sm animate-pulse ml-2"
+              >
+                <Plus className="h-3 w-3 mr-1" />
+                Instalar App
+              </button>
+            )}
           </h1>
 
           <div className="flex items-center space-x-3 w-full sm:w-auto overflow-x-auto pb-2 sm:pb-0">
@@ -228,10 +269,22 @@ function Dashboard() {
                   <LayoutTemplate className="h-4 w-4 sm:mr-2" />
                   <span className="hidden sm:inline">Tela Login</span>
                 </button>
+                <button
+                  onClick={() => setActiveTab('admin-sistema')}
+                  className={`inline-flex items-center px-3 py-2 border rounded-md shadow-sm text-sm font-medium ${activeTab === 'admin-sistema' ? 'border-indigo-500 bg-indigo-50 text-indigo-700' : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'}`}
+                >
+                  <Settings className="h-4 w-4 sm:mr-2" />
+                  <span className="hidden sm:inline">Sistema</span>
+                </button>
+                <button
+                  onClick={() => setActiveTab('admin-backup')}
+                  className={`inline-flex items-center px-3 py-2 border rounded-md shadow-sm text-sm font-medium ${activeTab === 'admin-backup' ? 'border-indigo-500 bg-indigo-50 text-indigo-700' : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'}`}
+                >
+                  <Database className="h-4 w-4 sm:mr-2" />
+                  <span className="hidden sm:inline">Backup</span>
+                </button>
               </>
             )}
-
-            {/* Filtros — só visíveis no tab Painel */}
             {activeTab === 'painel' && (
               <div className="flex items-center space-x-2 bg-gray-50 p-2 rounded-lg border border-gray-200 flex-grow sm:flex-grow-0">
                 <Filter className="h-4 w-4 text-gray-400 flex-shrink-0" />
@@ -256,6 +309,26 @@ function Dashboard() {
                   <option value="draft">Rascunhos</option>
                 </select>
               </div>
+            )}
+
+            {/* Botões exclusivos do Lojista */}
+            {user!.role === 'lojista' && (
+              <>
+                <button
+                  onClick={() => setActiveTab('robo')}
+                  className={`inline-flex items-center px-3 py-2 border rounded-md shadow-sm text-sm font-medium ${activeTab === 'robo' ? 'border-indigo-500 bg-indigo-50 text-indigo-700' : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'}`}
+                >
+                  <Bot className="h-4 w-4 sm:mr-2" />
+                  <span className="hidden sm:inline">Meu Robô</span>
+                </button>
+                <button
+                  onClick={() => setActiveTab('disparos')}
+                  className={`inline-flex items-center px-3 py-2 border rounded-md shadow-sm text-sm font-medium ${activeTab === 'disparos' ? 'border-purple-500 bg-purple-50 text-purple-700' : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'}`}
+                >
+                  <span className="sm:mr-2">📢</span>
+                  <span className="hidden sm:inline">Disparos</span>
+                </button>
+              </>
             )}
 
             {user!.role === 'admin' && (
@@ -299,14 +372,19 @@ function Dashboard() {
         </div>
       </header>
 
-      <main className={(activeTab === 'robo' || activeTab === 'admin-login' || activeTab === 'admin-bots') ? 'max-w-7xl mx-auto py-6 sm:px-6 lg:px-8' : 'max-w-7xl mx-auto py-6 sm:px-6 lg:px-8 grid grid-cols-1 lg:grid-cols-2 gap-6 items-start'}>
+      <main className="w-full mx-auto py-6 px-4 sm:px-6 lg:px-8">
 
         {/* Tela de Configuração do Robô */}
         {activeTab === 'robo' && <RobotConfigPage />}
 
+        {/* Tela de Disparo em Massa YCloud */}
+        {activeTab === 'disparos' && <MassMessagePage />}
+
         {/* Telas Exclusivas do Admin */}
         {activeTab === 'admin-login' && <AdminLoginConfig />}
         {activeTab === 'admin-bots' && <AdminLojistaBots />}
+        {activeTab === 'admin-sistema' && <AdminSystemUpdate />}
+        {activeTab === 'admin-backup' && <AdminBackup />}
 
         {/* Painel de workflows */}
         {activeTab === 'painel' && (
@@ -317,14 +395,28 @@ function Dashboard() {
                 <h2 className="text-xl font-bold text-gray-800">Meus Robôs</h2>
                 <p className="text-sm text-gray-500">Gerencie todos os fluxos e instâncias ativas do n8n.</p>
               </div>
-              {user!.role === 'admin' && (
-                <button
-                  onClick={() => setIsCreateModalOpen(true)}
-                  className="inline-flex items-center px-4 py-2 border border-transparent rounded-lg shadow-sm text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 transition-colors"
-                >
-                  <Plus className="h-4 w-4 mr-2" /> Criador de Fluxos em Lote
-                </button>
-              )}
+              <div className="flex flex-col sm:flex-row items-center gap-4">
+                <div className="relative flex-grow sm:max-w-xs">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <Filter className="h-4 w-4 text-gray-400" />
+                  </div>
+                  <input
+                    type="text"
+                    placeholder="Pesquisar fluxo..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg leading-5 bg-white placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm transition-all"
+                  />
+                </div>
+                {user!.role === 'admin' && (
+                  <button
+                    onClick={() => setIsCreateModalOpen(true)}
+                    className="inline-flex items-center px-4 py-2 border border-transparent rounded-lg shadow-sm text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 transition-colors"
+                  >
+                    <Plus className="h-4 w-4 mr-2" /> Criador de Fluxos em Lote
+                  </button>
+                )}
+              </div>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">

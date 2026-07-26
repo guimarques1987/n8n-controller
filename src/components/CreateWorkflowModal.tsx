@@ -85,10 +85,17 @@ function Switch({ checked, onChange, label, disabled }: { checked: boolean; onCh
 
 // Definição estática dos modelos esperados
 const FIXED_TEMPLATES = [
-    { key: 'delivery', name: 'Delivery', instanceId: '1', color: 'text-blue-500 bg-blue-50 flex items-center justify-center p-2 rounded-lg' },
-    { key: 'recuperador', name: 'Recuperador', instanceId: '1', color: 'text-indigo-500 bg-indigo-50 flex items-center justify-center p-2 rounded-lg' },
-    { key: 'lembrete', name: 'Lembrete', instanceId: '1', color: 'text-emerald-500 bg-emerald-50 flex items-center justify-center p-2 rounded-lg' },
-    { key: 'status', name: 'Status', instanceId: '2', color: 'text-purple-500 bg-purple-50 flex items-center justify-center p-2 rounded-lg' }
+    // Instância 1: Delivery
+    { key: 'delivery_uazapi', name: 'Delivery - Uazapi', instanceId: '1', color: 'text-blue-500 bg-blue-50 flex items-center justify-center p-2 rounded-lg' },
+    { key: 'delivery_ycloud', name: 'Delivery - YCloude', instanceId: '1', color: 'text-emerald-500 bg-emerald-50 flex items-center justify-center p-2 rounded-lg' },
+    { key: 'delivery_oficial', name: 'Delivery - API Oficial', instanceId: '1', color: 'text-indigo-500 bg-indigo-50 flex items-center justify-center p-2 rounded-lg' },
+    { key: 'presencial', name: 'Presencial', instanceId: '1', color: 'text-orange-500 bg-orange-50 flex items-center justify-center p-2 rounded-lg' },
+    { key: 'recuperador', name: 'Recuperador', instanceId: '1', color: 'text-violet-500 bg-violet-50 flex items-center justify-center p-2 rounded-lg' },
+    { key: 'lembrete', name: 'Lembrete', instanceId: '1', color: 'text-amber-500 bg-amber-50 flex items-center justify-center p-2 rounded-lg' },
+    // Instância 2: Status
+    { key: 'status_uazapi', name: 'Status - Uazapi', instanceId: '2', color: 'text-purple-500 bg-purple-50 flex items-center justify-center p-2 rounded-lg' },
+    { key: 'status_ycloud', name: 'Status - YCloude', instanceId: '2', color: 'text-teal-500 bg-teal-50 flex items-center justify-center p-2 rounded-lg' },
+    { key: 'status_oficial', name: 'Status - API Oficial', instanceId: '2', color: 'text-pink-500 bg-pink-50 flex items-center justify-center p-2 rounded-lg' }
 ];
 
 const CreateWorkflowModal: React.FC<CreateWorkflowModalProps> = ({
@@ -99,9 +106,14 @@ const CreateWorkflowModal: React.FC<CreateWorkflowModalProps> = ({
 }) => {
     const [globalNamePrefix, setGlobalNamePrefix] = useState('');
 
+    // ─── Dados Globais da Loja (preenchimento automático) ───────────────────────
+    const [globalLojaId, setGlobalLojaId] = useState('');
+    const [globalLojaNome, setGlobalLojaNome] = useState('');
+
     // Estado para armazenar quais modelos foram selecionados na UI
     const [selectedKeys, setSelectedKeys] = useState<Record<string, boolean>>({
         delivery: false,
+        presencial: false,
         recuperador: false,
         lembrete: false,
         status: false
@@ -132,7 +144,9 @@ const CreateWorkflowModal: React.FC<CreateWorkflowModalProps> = ({
 
     const resetState = () => {
         setGlobalNamePrefix('');
-        setSelectedKeys({ delivery: false, recuperador: false, lembrete: false, status: false });
+        setGlobalLojaId('');
+        setGlobalLojaNome('');
+        setSelectedKeys({ delivery: false, presencial: false, recuperador: false, lembrete: false, status: false });
         setFetchedData({});
         setEditedWorkflows({});
         setActiveExpandedKey(null);
@@ -140,6 +154,37 @@ const CreateWorkflowModal: React.FC<CreateWorkflowModalProps> = ({
         setSelectedNodes(new Set());
         setIsBatchMode(false);
         setErrors([]);
+    };
+
+    // ─── Helper: resolve a config de template para uma meta ─────────────────────
+    const getTemplateConfigForMeta = (meta: typeof FIXED_TEMPLATES[0]) => {
+        const rawTemplates = config?.[meta.instanceId]?.templates;
+        if (!rawTemplates) return null;
+        if (Array.isArray(rawTemplates)) {
+            if (meta.key === 'delivery_uazapi' || meta.key === 'delivery') return rawTemplates.find((t: any) => t.id === 'modeloUazpi' || t.name === 'Robô Delivery');
+            if (meta.key === 'delivery_ycloud') return rawTemplates.find((t: any) => t.id === 'modeloYCloud' || t.name === 'Delivery YCloude');
+            if (meta.key === 'delivery_oficial') return rawTemplates.find((t: any) => t.id === 'modeloOficial' || t.name === 'Delivery API Oficial');
+            if (meta.key === 'presencial') return rawTemplates.find((t: any) => t.id === 'modeloPresencial' || t.name === 'Atendimento Presencial');
+            if (meta.key === 'recuperador') return rawTemplates.find((t: any) => t.id === 'modeloRecuperador' || t.name === 'Recuperador de Carrinho');
+            if (meta.key === 'lembrete') return rawTemplates.find((t: any) => t.id === 'modeloLembrete' || t.name === 'Fluxo de Lembrete');
+            if (meta.key === 'status_uazapi' || meta.key === 'status') return rawTemplates.find((t: any) => t.id === 'modeloStatusUazapi' || t.name === 'Robô de Status');
+            if (meta.key === 'status_ycloud') return rawTemplates.find((t: any) => t.id === 'modeloStatusYCloud' || t.name === 'Status YCloude');
+            if (meta.key === 'status_oficial') return rawTemplates.find((t: any) => t.id === 'modeloStatusOficial' || t.name === 'Status API Oficial');
+            return null;
+        }
+        let tc = rawTemplates?.[meta.key];
+        if (!tc) {
+            if (meta.key === 'delivery_uazapi') tc = rawTemplates?.delivery || rawTemplates?.modeloUazpi;
+            if (meta.key === 'delivery_ycloud') tc = rawTemplates?.modeloYCloud;
+            if (meta.key === 'delivery_oficial') tc = rawTemplates?.modeloOficial;
+            if (meta.key === 'presencial') tc = rawTemplates?.modeloPresencial;
+            if (meta.key === 'recuperador') tc = rawTemplates?.modeloRecuperador;
+            if (meta.key === 'lembrete') tc = rawTemplates?.modeloLembrete;
+            if (meta.key === 'status_uazapi') tc = rawTemplates?.status || rawTemplates?.modeloStatusUazapi;
+            if (meta.key === 'status_ycloud') tc = rawTemplates?.modeloStatusYCloud;
+            if (meta.key === 'status_oficial') tc = rawTemplates?.modeloStatusOficial;
+        }
+        return tc;
     };
 
     const getEditableParams = (node: any) => {
@@ -166,6 +211,78 @@ const CreateWorkflowModal: React.FC<CreateWorkflowModalProps> = ({
         return editables;
     };
 
+    // ─── Função pura: aplica globais a um único workflow clonado ───────────────
+    const applyGlobalsToWorkflow = (
+        templateKey: string,
+        workflow: any,
+        lojaId: string,
+        lojaNome: string,
+        templateCfg: any
+    ): any => {
+        if (!workflow?.nodes) return workflow;
+        const nodeParamConfig = templateCfg?.nodeParamConfig || {};
+        const allowedNodes: string[] = templateCfg?.editableNodes || [];
+        const cloned = JSON.parse(JSON.stringify(workflow));
+
+        const setFV = (node: any, fieldPath: string, val: any) => {
+            const keys = fieldPath.split('.');
+            let obj = node.parameters;
+            for (let i = 0; i < keys.length - 1; i++) {
+                if (!obj || obj[keys[i]] === undefined) return;
+                obj = obj[keys[i]];
+            }
+            const k = keys[keys.length - 1];
+            obj[k] = (typeof val === 'string' && val !== '' && !isNaN(Number(val))) ? Number(val) : val;
+        };
+
+        cloned.nodes.forEach((node: any) => {
+            if (!allowedNodes.includes(node.name)) return;
+            const editables = getEditableParams(node);
+            const nConfig = nodeParamConfig[node.name] || {};
+
+            editables.forEach((field: any) => {
+                const lbl = (nConfig?.[field.path]?.label || field.label || '').toLowerCase().trim();
+                const enabled = nConfig?.[field.path]?.enabled !== false;
+                if (!enabled) return;
+
+                // Preenche campos cujo label comece com "id"
+                if (lojaId && lbl.startsWith('id')) {
+                    setFV(node, field.path, lojaId);
+                }
+                // Webhook Delivery
+                if (lojaNome && (templateKey.startsWith('delivery') || templateKey === 'delivery' || templateKey === 'presencial' || templateKey === 'recuperador' || templateKey === 'lembrete') && field.path.toLowerCase() === 'path') {
+                    const slug = lojaNome.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, '_');
+                    setFV(node, field.path, `${slug}_delivery`);
+                }
+                // Webhook Status
+                if (lojaNome && (templateKey.startsWith('status') || templateKey === 'status') && field.path.toLowerCase() === 'path') {
+                    const slug = lojaNome.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, '_');
+                    setFV(node, field.path, `${slug}_status`);
+                }
+            });
+        });
+
+        return cloned;
+    };
+
+    // ─── Aplica globais quando o usuário muda os campos globais (workflows já carregados) ───
+    useEffect(() => {
+        if (!globalLojaId && !globalLojaNome) return;
+        if (Object.keys(editedWorkflows).length === 0) return;
+
+        setEditedWorkflows(prev => {
+            const next: Record<string, any> = { ...prev };
+            for (const templateKey of Object.keys(next)) {
+                const meta = FIXED_TEMPLATES.find(t => t.key === templateKey);
+                if (!meta) continue;
+                const cfg = getTemplateConfigForMeta(meta);
+                next[templateKey] = applyGlobalsToWorkflow(templateKey, next[templateKey], globalLojaId, globalLojaNome, cfg);
+            }
+            return next;
+        });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [globalLojaId, globalLojaNome]);
+
     // Carrega os dados remotamente da base original (N8N) quando o usuário "ticar" uma checkbox
     const handleToggleTemplate = async (meta: typeof FIXED_TEMPLATES[0]) => {
         const isCurrentlySelected = selectedKeys[meta.key];
@@ -177,23 +294,7 @@ const CreateWorkflowModal: React.FC<CreateWorkflowModalProps> = ({
         // Se ativou e ainda não baixamos, baixa o template agora
         if (newSelectedState && !fetchedData[meta.key]) {
             // Suporte Legado e Estrutura de Array (Backward Compatibility)
-            let rawTemplates = config?.[meta.instanceId]?.templates;
-            let templateConfig = null;
-
-            if (Array.isArray(rawTemplates)) {
-                // Se for Array legado, buscar pelo nome antigo
-                if (meta.key === 'delivery') templateConfig = rawTemplates.find(t => t.id === 'modeloUazpi' || t.name === 'Robô Delivery');
-                if (meta.key === 'recuperador') templateConfig = rawTemplates.find(t => t.id === 'modeloRecuperador' || t.name === 'Recuperador de Carrinho');
-                if (meta.key === 'lembrete') templateConfig = rawTemplates.find(t => t.id === 'modeloLembrete' || t.name === 'Fluxo de Lembrete');
-                if (meta.key === 'status') templateConfig = rawTemplates.find(t => t.id === 'modeloStatusUazapi' || t.name === 'Robô de Status');
-            } else {
-                // É um objeto
-                templateConfig = rawTemplates?.[meta.key];
-                if (!templateConfig) {
-                    if (meta.key === 'delivery') templateConfig = rawTemplates?.modeloUazpi;
-                    if (meta.key === 'status') templateConfig = rawTemplates?.modeloStatusUazapi;
-                }
-            }
+            const templateConfig = getTemplateConfigForMeta(meta);
 
             if (!templateConfig || !templateConfig.id) {
                 setErrors(prev => [...prev, `O Modelo ${meta.name} não possui um fluxo base configurado nos Ajustes.`]);
@@ -208,10 +309,15 @@ const CreateWorkflowModal: React.FC<CreateWorkflowModalProps> = ({
                 // Guardamos o original
                 setFetchedData(prev => ({ ...prev, [meta.key]: rawWorkflowData }));
 
-                // E iniciamos uma cópia local para edição, preservando todos os nós
+                // E iniciamos uma cópia local para edição, aplicando globais já definidos
+                const templateCfg = getTemplateConfigForMeta(meta);
+                let processedWorkflow = JSON.parse(JSON.stringify(rawWorkflowData));
+                if (globalLojaId || globalLojaNome) {
+                    processedWorkflow = applyGlobalsToWorkflow(meta.key, processedWorkflow, globalLojaId, globalLojaNome, templateCfg);
+                }
                 setEditedWorkflows(prev => ({
                     ...prev,
-                    [meta.key]: JSON.parse(JSON.stringify(rawWorkflowData)) // Deep copy
+                    [meta.key]: processedWorkflow
                 }));
 
             } catch (err: any) {
@@ -374,6 +480,51 @@ const CreateWorkflowModal: React.FC<CreateWorkflowModalProps> = ({
                             </div>
                         )}
 
+                        {/* ─── BLOCO 0: DADOS GLOBAIS DA LOJA ─────────────────────────────── */}
+                        <div className="mb-6 bg-gradient-to-br from-amber-50 to-orange-50 border-2 border-amber-200 rounded-2xl p-5 space-y-4">
+                            <div>
+                                <label className="text-[11px] font-black text-amber-600 uppercase tracking-widest flex items-center gap-2">
+                                    <span>⚡</span> DADOS GLOBAIS — Preenchimento Automático
+                                </label>
+                                <p className="text-[10px] font-semibold text-amber-500 mt-1">Preencha uma vez e todos os fluxos são atualizados instantaneamente.</p>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-3">
+                                <div className="space-y-1">
+                                    <label className="text-[10px] font-black text-amber-700 uppercase tracking-widest">Nome da Loja</label>
+                                    <input
+                                        type="text"
+                                        placeholder="Ex: lanchonete_silva"
+                                        className="w-full bg-white border-2 border-amber-200 p-3 rounded-xl text-sm font-bold text-gray-800 placeholder:text-gray-300 focus:ring-4 focus:ring-amber-100 focus:border-amber-400 transition-all outline-none"
+                                        value={globalLojaNome}
+                                        onChange={(e) => setGlobalLojaNome(e.target.value)}
+                                    />
+                                    <p className="text-[9px] text-amber-500 font-semibold">Webhook: nome_delivery / nome_status</p>
+                                </div>
+                                <div className="space-y-1">
+                                    <label className="text-[10px] font-black text-amber-700 uppercase tracking-widest">ID da Loja</label>
+                                    <input
+                                        type="text"
+                                        placeholder="Ex: 42"
+                                        className="w-full bg-white border-2 border-amber-200 p-3 rounded-xl text-sm font-bold text-gray-800 placeholder:text-gray-300 focus:ring-4 focus:ring-amber-100 focus:border-amber-400 transition-all outline-none"
+                                        value={globalLojaId}
+                                        onChange={(e) => setGlobalLojaId(e.target.value)}
+                                    />
+                                    <p className="text-[9px] text-amber-500 font-semibold">Campo "Id" em todos os fluxos</p>
+                                </div>
+                            </div>
+
+                            {(globalLojaId || globalLojaNome) && (
+                                <div className="bg-white border border-amber-200 rounded-xl p-3 space-y-1">
+                                    <p className="text-[10px] font-black text-amber-700 uppercase mb-1.5">✓ Sendo aplicado:</p>
+                                    {globalLojaId && <p className="text-[10px] font-semibold text-amber-600">• Campo Id → <span className="font-black text-amber-800">{globalLojaId}</span></p>}
+                                    {globalLojaNome && <p className="text-[10px] font-semibold text-amber-600">• Webhook Delivery → <span className="font-black text-amber-800">{globalLojaNome.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, '_')}_delivery</span></p>}
+                                    {globalLojaNome && <p className="text-[10px] font-semibold text-amber-600">• Webhook Status → <span className="font-black text-amber-800">{globalLojaNome.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, '_')}_status</span></p>}
+                                </div>
+                            )}
+                        </div>
+
+                        {/* ─── BLOCO 1: NOME BASE DOS FLUXOS ─────────────────────────────── */}
                         <div className="space-y-4 mb-8">
                             <label className="text-[11px] font-black text-indigo-400 uppercase tracking-widest flex items-center gap-2">
                                 <Icon path={ICON_FILE_TEXT} className="text-indigo-300" /> 1. NOME BASE DOS FLUXOS GERAIS
@@ -398,21 +549,7 @@ const CreateWorkflowModal: React.FC<CreateWorkflowModalProps> = ({
                                     const isChecked = selectedKeys[meta.key];
                                     const isFetching = loadingFetch[meta.key];
                                     const isReady = fetchedData[meta.key];
-                                    let rawTemplates = config?.[meta.instanceId]?.templates;
-                                    let templateConfig = null;
-
-                                    if (Array.isArray(rawTemplates)) {
-                                        if (meta.key === 'delivery') templateConfig = rawTemplates.find(t => t.id === 'modeloUazpi' || t.name === 'Robô Delivery');
-                                        if (meta.key === 'recuperador') templateConfig = rawTemplates.find(t => t.id === 'modeloRecuperador' || t.name === 'Recuperador de Carrinho');
-                                        if (meta.key === 'lembrete') templateConfig = rawTemplates.find(t => t.id === 'modeloLembrete' || t.name === 'Fluxo de Lembrete');
-                                        if (meta.key === 'status') templateConfig = rawTemplates.find(t => t.id === 'modeloStatusUazapi' || t.name === 'Robô de Status');
-                                    } else {
-                                        templateConfig = rawTemplates?.[meta.key];
-                                        if (!templateConfig) {
-                                            if (meta.key === 'delivery') templateConfig = rawTemplates?.modeloUazpi;
-                                            if (meta.key === 'status') templateConfig = rawTemplates?.modeloStatusUazapi;
-                                        }
-                                    }
+                                    const templateConfig = getTemplateConfigForMeta(meta);
 
                                     const hasValidBase = !!(templateConfig?.id);
                                     const isExpanded = activeExpandedKey === meta.key;

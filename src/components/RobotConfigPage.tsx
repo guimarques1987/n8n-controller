@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import ImageGeneratorPanel from './ImageGeneratorPanel';
+import { compressImage } from '../utils/imageUtils';
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
 interface RoboConfig {
@@ -11,10 +13,14 @@ interface RoboConfig {
     'link-foto-fechado': string;
     tipo_mensagem_aberto: 'texto' | 'imagem';
     tipo_mensagem_fechado: 'texto' | 'imagem';
-    'status-recuperador': number; // 0 = desligado, 1 = ligado
+    'status-recuperador': number;
     'qtd-dias': number;
     'qtd-dias-maximo': number;
-    'status-lembrete': number; // 0 = desligado, 1 = ligado
+    'status-lembrete': number;
+    'recuperador-msg': string;
+    'lembrar-cliente': string;
+    'msg-paga': number; // 0 = desativado, 1 = ativado (envio via API oficial)
+    'horario-recuperador': string;
     plano?: string;
     workflow_id?: string;
     instance_id?: string;
@@ -23,34 +29,56 @@ interface RoboConfig {
 
 // ─── Variáveis de atalho ──────────────────────────────────────────────────────
 const VARIAVEIS = [
-    { label: 'Nome do Cliente', value: "{{ $('Dados-WB').first().json.body.data.pushName }}" },
-    { label: 'Saudação', value: "{{ $('saudação/dataAtual').first().json.saudacao }}" },
-    { label: 'Nome do Estabelecimento', value: "{{ $('Dados-Lojista').first().json.NomeEstabelecimento }}" },
-    { label: 'Link do Cardápio', value: "{{ $('Dados-Lojista').first().json.site }}" },
+    { label: '{saudacao}', value: '{saudacao}' },
+    { label: '{nome}', value: '{nome}' },
+    { label: '{estabelecimento}', value: '{estabelecimento}' },
+    { label: '{link}', value: '{link}' },
+    { label: '{domingo}', value: '{domingo}' },
+    { label: '{segunda}', value: '{segunda}' },
+    { label: '{terca}', value: '{terca}' },
+    { label: '{quarta}', value: '{quarta}' },
+    { label: '{quinta}', value: '{quinta}' },
+    { label: '{sexta}', value: '{sexta}' },
+    { label: '{sabado}', value: '{sabado}' },
 ];
 
-const DEFAULT_SAUDACAO = `{{ $('saudação/dataAtual').first().json.saudacao }} {{ $('Dados-WB').first().json.body.data.pushName }}! Bem-vindo à {{ $('Dados-Lojista').first().json.NomeEstabelecimento }}. 
+const VARIAVEIS_RECUPERADOR = [
+    { label: '{nome}', value: '{nome}' },
+    { label: '{itens_simples}', value: '{itens_simples}' },
+];
 
-Segue o link do nosso cardápio digital: {{ $('Dados-Lojista').first().json.site }} 
+const VARIAVEIS_LEMBRETE = [
+    { label: '{nome}', value: '{nome}' },
+    { label: '{estabelecimento}', value: '{estabelecimento}' },
+];
 
-Pedidos feitos pelo nosso site vão direto para a cozinha, garantindo um preparo mais rápido. 
+const DEFAULT_RECUPERADOR_MSG = `Olá {nome}! Seu último pedido foi {itens_simples} . Gostaria de repetir? Confira nosso cardápio digital abaixo.`;
 
-**Obs: Após clicar no link, aguarde alguns segundos enquanto o site carrega os produtos.**  
+const DEFAULT_LEMBRAR_CLIENTE = `Olá {nome}! 😊 Boas notícias: a {estabelecimento} já está aberta e pronta para receber seu pedido! 🛍️ Dê uma olhada no nosso cardápio digital e escolha o que deseja. Estamos à disposição para qualquer dúvida! 🍽️`;
+
+const DEFAULT_SAUDACAO = `{saudacao} {nome}! Bem-vindo à {estabelecimento}.
+
+Segue o link do nosso cardápio digital:
+{link}
+
+Pedidos feitos pelo nosso site vão direto para a cozinha, garantindo um preparo mais rápido.
+
+**Obs: Após clicar no link, aguarde alguns segundos enquanto o site carrega os produtos.**
 
 Agradecemos a sua preferência.`;
 
-const DEFAULT_DESPEDIDA = `{{ $('saudação/dataAtual').first().json.saudacao }} {{ $('Dados-WB').first().json.body.data.pushName }} 🔥
+const DEFAULT_DESPEDIDA = `{saudacao} {nome} 🔥
 
-A {{ $('Dados-Lojista').first().json.NomeEstabelecimento }} está fechada neste momento, mas já já estaremos prontos para preparar seu pedido 😍
+A {estabelecimento} está fechada neste momento, mas já já estaremos prontos para preparar seu pedido 😍
 
 ⏰ Nosso horário:
-Domingo: {{ $json.Domingo[0] }}
-Segunda: {{ $json.Segunda[0] }}
-Terça: {{ $json.Terça[0] }}
-Quarta: {{ $json.Quarta[0] }}
-Quinta: {{ $json.Quinta[0] }}
-Sexta: {{ $json.Sexta[0] }}
-Sábado: {{ $json.Sábado[0] }}
+Domingo: {domingo}
+Segunda: {segunda}
+Terça: {terca}
+Quarta: {quarta}
+Quinta: {quinta}
+Sexta: {sexta}
+Sábado: {sabado}
 
 Salva nosso contato e chama a gente assim que estivermos abertos 😉`;
 
@@ -94,6 +122,8 @@ function MensagemCard({
     token,
     hideImageOption,
     defaultMessage,
+    fotoTipo,
+    externalLojistaId,
 }: {
     titulo: string;
     texto: string;
@@ -106,6 +136,8 @@ function MensagemCard({
     token: string | null;
     hideImageOption?: boolean;
     defaultMessage?: string;
+    fotoTipo: 'aberto' | 'fechado';
+    externalLojistaId?: string;
 }) {
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -130,20 +162,13 @@ function MensagemCard({
     const handleFileSelect = async (file: File) => {
         setUploadError('');
         setUploadSuccess('');
-        if (file.size > 300 * 1024) {
-            setUploadError('O arquivo deve ter no máximo 300kb');
-            return;
-        }
-        const ext = file.name.split('.').pop()?.toLowerCase() || '';
-        if (!['jpg', 'jpeg', 'png', 'webp'].includes(ext)) {
-            setUploadError('Formato não permitido. Use jpg, jpeg, png ou webp');
-            return;
-        }
+        const compressed = await compressImage(file);
         setUploadLoading(true);
         try {
             const formData = new FormData();
-            formData.append('foto', file);
-            const res = await fetch('/api/robo-config/upload', {
+            formData.append('foto', compressed.file);
+            const lojistaParam = externalLojistaId ? `&lojistaId=${externalLojistaId}` : '';
+            const res = await fetch(`/api/robo-config/upload?tipo=${fotoTipo}${lojistaParam}`, {
                 method: 'POST',
                 headers: { Authorization: `Bearer ${token}` },
                 body: formData,
@@ -173,11 +198,7 @@ function MensagemCard({
                 {titulo}
                 {defaultMessage && tipoMensagem === 'texto' && (
                     <button
-                        onClick={() => {
-                            if (confirm('Deseja realmente voltar para a mensagem padrão?')) {
-                                onTextoChange(defaultMessage);
-                            }
-                        }}
+                        onClick={() => onTextoChange(defaultMessage)}
                         style={{
                             marginLeft: 'auto', padding: '4px 10px', borderRadius: 8, fontSize: 11, fontWeight: 700,
                             background: '#f3f4f6', color: '#4b5563', border: '1px solid #d1d5db',
@@ -226,6 +247,47 @@ function MensagemCard({
             {/* MODO TEXTO */}
             {tipoMensagem === 'texto' && (
                 <>
+                    {/* Guia de Tags */}
+                    <details style={{ marginBottom: 10 }}>
+                        <summary style={{
+                            fontSize: 12, fontWeight: 700, color: '#6366f1', cursor: 'pointer',
+                            userSelect: 'none', display: 'flex', alignItems: 'center', gap: 5,
+                            listStyle: 'none', WebkitAppearance: 'none',
+                        }}>
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+                            Ver guia de tags disponíveis
+                        </summary>
+                        <div style={{
+                            marginTop: 8, padding: '12px 14px', background: '#f5f3ff',
+                            border: '1px solid #ddd6fe', borderRadius: 10, fontSize: 12,
+                        }}>
+                            <p style={{ margin: '0 0 8px', fontWeight: 700, color: '#4c1d95' }}>Copie e cole essas tags exatamente assim no texto:</p>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 4 }}>
+                                {[
+                                    ['{saudacao}', 'Insere “Bom dia”, “Boa tarde” ou “Boa noite”'],
+                                    ['{nome}', 'Nome do cliente do WhatsApp'],
+                                    ['{estabelecimento}', 'Nome da Hamburgueria/Loja'],
+                                    ['{link}', 'Link do cardápio digital'],
+                                    ['{domingo}', 'Horário de Domingo'],
+                                    ['{segunda}', 'Horário de Segunda-feira'],
+                                    ['{terca}', 'Horário de Terça-feira'],
+                                    ['{quarta}', 'Horário de Quarta-feira'],
+                                    ['{quinta}', 'Horário de Quinta-feira'],
+                                    ['{sexta}', 'Horário de Sexta-feira'],
+                                    ['{sabado}', 'Horário de Sábado'],
+                                ].map(([tag, desc]) => (
+                                    <div key={tag} style={{ display: 'flex', alignItems: 'flex-start', gap: 6, padding: '2px 0' }}>
+                                        <code style={{
+                                            background: '#ede9fe', color: '#6d28d9', fontWeight: 700,
+                                            padding: '1px 6px', borderRadius: 4, flexShrink: 0, fontSize: 11,
+                                        }}>{tag}</code>
+                                        <span style={{ color: '#5b21b6', fontSize: 11 }}>— {desc}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </details>
+
                     {/* Botões de variáveis */}
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 10 }}>
                         {VARIAVEIS.map(v => (
@@ -233,15 +295,15 @@ function MensagemCard({
                                 key={v.label}
                                 onClick={() => insertVariable(v.value)}
                                 style={{
-                                    padding: '4px 12px', borderRadius: 20, fontSize: 12, fontWeight: 600,
-                                    border: '1.5px solid #bfdbfe',
-                                    background: '#eff6ff', color: '#2563eb',
+                                    padding: '4px 12px', borderRadius: 20, fontSize: 12, fontWeight: 700,
+                                    border: '1.5px solid #c4b5fd',
+                                    background: '#ede9fe', color: '#6d28d9',
                                     cursor: 'pointer', transition: 'all 0.15s',
-                                    whiteSpace: 'nowrap',
+                                    whiteSpace: 'nowrap', fontFamily: 'monospace',
                                 }}
-                                title={`Inserir: ${v.value}`}
+                                title={`Clique para inserir ${v.value} no cursor`}
                             >
-                                [{v.label}]
+                                {v.label}
                             </button>
                         ))}
                     </div>
@@ -276,13 +338,13 @@ function MensagemCard({
                     {linkFoto && (
                         <div style={{ marginBottom: 16 }}>
                             <img
-                                src={linkFoto}
+                                src={(typeof linkFoto === 'string' && !linkFoto.startsWith('http') && !linkFoto.startsWith('data:') && !linkFoto.startsWith('/')) ? `data:image/jpeg;base64,${linkFoto}` : linkFoto}
                                 alt="Preview"
                                 style={{ maxWidth: '100%', maxHeight: 180, borderRadius: 10, border: '1px solid #e5e7eb', objectFit: 'contain' }}
                                 onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }}
                             />
                             <p style={{ margin: '6px 0 0', fontSize: 12, color: '#6b7280', wordBreak: 'break-all' }}>
-                                🔗 {linkFoto}
+                                🔗 {typeof linkFoto === 'string' && linkFoto.length > 50 ? linkFoto.substring(0, 50) + '...' : linkFoto}
                             </p>
                         </div>
                     )}
@@ -312,7 +374,7 @@ function MensagemCard({
                         </svg>
                         <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: '#3b82f6' }}>Clique ou arraste para enviar</p>
                         <p style={{ margin: '4px 0 0', fontSize: 12, color: '#9ca3af' }}>
-                            JPG, JPEG, PNG, WEBP · máx. 300kb
+                            JPG, JPEG, PNG, WEBP · máx. 500kb
                         </p>
                     </div>
 
@@ -387,21 +449,24 @@ function MensagemCard({
                         onChange={e => { const f = e.target.files?.[0]; if (f) handleFileSelect(f); e.target.value = ''; }}
                     />
 
-                    {/* URL manual */}
+                    {/* URL manual ou Base64 */}
                     <div style={{ marginTop: 14 }}>
                         <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#6b7280', marginBottom: 6 }}>
-                            Ou cole um link de imagem:
+                            Link da imagem ou Código Base64:
                         </label>
-                        <input
-                            type="url"
+                        <textarea
                             value={linkFoto}
                             onChange={e => onLinkFotoChange(e.target.value)}
-                            placeholder="https://..."
+                            placeholder="https://... ou cola o código base64 aqui"
+                            rows={3}
                             style={{
                                 width: '100%', boxSizing: 'border-box',
                                 padding: '9px 12px', border: '1.5px solid #e5e7eb',
-                                borderRadius: 8, fontSize: 13, color: '#374151',
+                                borderRadius: 8, fontSize: 11, color: '#374151',
                                 background: '#f9fafb', outline: 'none',
+                                fontFamily: 'monospace',
+                                wordBreak: 'break-all',
+                                resize: 'vertical'
                             }}
                         />
                     </div>
@@ -439,7 +504,11 @@ export default function RobotConfigPage({ externalLojistaId }: { externalLojista
         'status-recuperador': 1,
         'qtd-dias': 0,
         'qtd-dias-maximo': 0,
-        'status-lembrete': 1,
+        'status-lembrete': 0,
+        'recuperador-msg': '',
+        'lembrar-cliente': '',
+        'msg-paga': 0,
+        'horario-recuperador': '',
         'plano': 'basico'
     });
     const [loading, setLoading] = useState(true);
@@ -449,11 +518,15 @@ export default function RobotConfigPage({ externalLojistaId }: { externalLojista
 
     // --- WhatsApp Uazapi Connection State ---
     const [wpStatus, setWpStatus] = useState<string>('verificando...');
+    const [wpName, setWpName] = useState<string>('');
+    const [wpNumber, setWpNumber] = useState<string>('');
+    const [wpProfilePic, setWpProfilePic] = useState<string>('');
     const [wpQrCode, setWpQrCode] = useState<string>('');
     const [wpLoading, setWpLoading] = useState(false);
     const [wpError, setWpError] = useState('');
 
     const [lojistaWorkflows, setLojistaWorkflows] = useState<any[]>([]);
+    const [wfActiveMap, setWfActiveMap] = useState<Record<string, boolean>>({});
 
     useEffect(() => {
         const url = externalLojistaId ? `/api/robo-config?lojistaId=${externalLojistaId}` : '/api/robo-config';
@@ -475,6 +548,10 @@ export default function RobotConfigPage({ externalLojistaId }: { externalLojista
                     'qtd-dias': data['qtd-dias'] ?? 0,
                     'qtd-dias-maximo': data['qtd-dias-maximo'] ?? 0,
                     'status-lembrete': data['status-lembrete'] !== undefined ? data['status-lembrete'] : 0,
+                    'recuperador-msg': data['recuperador-msg'] ?? '',
+                    'lembrar-cliente': data['lembrar-cliente'] ?? '',
+                    'msg-paga': data['msg-paga'] !== undefined ? data['msg-paga'] : 0,
+                    'horario-recuperador': data['horario-recuperador'] ?? '',
                     'plano': data.plano || 'basico'
                 });
             })
@@ -491,11 +568,46 @@ export default function RobotConfigPage({ externalLojistaId }: { externalLojista
             headers: { Authorization: `Bearer ${token}` },
         })
             .then(r => r.json())
-            .then(wfs => {
-                if (Array.isArray(wfs)) setLojistaWorkflows(wfs);
+            .then(async wfs => {
+                if (Array.isArray(wfs)) {
+                    setLojistaWorkflows(wfs);
+                    // Busca status active de cada workflow no n8n
+                    const activeMap: Record<string, boolean> = {};
+                    await Promise.all(wfs.map(async (lw: any) => {
+                        try {
+                            const r = await fetch(`/api/${lw.instance_id}/workflows/${lw.workflow_id}`, {
+                                headers: { Authorization: `Bearer ${token}` }
+                            });
+                            if (r.ok) {
+                                const d = await r.json();
+                                activeMap[lw.workflow_id] = d.active ?? false;
+                            }
+                        } catch (_) {}
+                    }));
+                    setWfActiveMap(activeMap);
+                }
             })
             .catch(console.error);
     }, [token, externalLojistaId]);
+
+    const handleUseAIImage = (url: string, target: 'saudacao' | 'despedida') => {
+        // Extrai apenas o código base64 se for um Data URL
+        const base64Only = url.includes(',') ? url.split(',')[1] : url;
+
+        if (target === 'saudacao') {
+            setConfig(prev => ({
+                ...prev,
+                'link-foto-aberto': base64Only,
+                tipo_mensagem_aberto: 'imagem'
+            }));
+        } else {
+            setConfig(prev => ({
+                ...prev,
+                'link-foto-fechado': base64Only,
+                tipo_mensagem_fechado: 'imagem'
+            }));
+        }
+    };
 
     // --- Uazapi Handlers ---
     const fetchWpStatus = async () => {
@@ -504,6 +616,9 @@ export default function RobotConfigPage({ externalLojistaId }: { externalLojista
             const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
             const data = await res.json();
             setWpStatus(data.status || 'close');
+            setWpName(data.name || '');
+            setWpNumber(data.number || '');
+            setWpProfilePic(data.profilePic || '');
         } catch (e) {
             setWpStatus('close');
         }
@@ -576,6 +691,21 @@ export default function RobotConfigPage({ externalLojistaId }: { externalLojista
         }
     };
 
+    const handleToggleWf = async (instanceId: string, workflowId: string, active: boolean) => {
+        setWfActiveMap(prev => ({ ...prev, [workflowId]: active }));
+        try {
+            const res = await fetch(`/api/${instanceId}/workflows/${workflowId}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                body: JSON.stringify({ active })
+            });
+            if (!res.ok) throw new Error('Falha');
+        } catch (e) {
+            setWfActiveMap(prev => ({ ...prev, [workflowId]: !active }));
+            alert('Falha ao atualizar status do fluxo no n8n');
+        }
+    };
+
     const handleSave = async () => {
         setSaveMsg('');
         setSaveError('');
@@ -617,7 +747,7 @@ export default function RobotConfigPage({ externalLojistaId }: { externalLojista
     }
 
     return (
-        <div style={{ maxWidth: 680, margin: '0 auto', padding: '24px 16px', fontFamily: "'Inter', -apple-system, sans-serif" }}>
+        <div style={{ maxWidth: 1200, margin: '0 auto', padding: '24px 20px', fontFamily: "'Inter', -apple-system, sans-serif" }}>
             <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
 
             {/* ── PLANO SELECTION (Admin Only) ───────────────────────────────────────── */}
@@ -656,26 +786,48 @@ export default function RobotConfigPage({ externalLojistaId }: { externalLojista
                 padding: '24px', boxShadow: '0 2px 12px rgba(0,0,0,0.06)', marginBottom: 24,
                 display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center'
             }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 20, width: '100%', justifyContent: 'center' }}>
                     <div style={{
-                        width: 48, height: 48, borderRadius: '12px', background: '#ecfdf5',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center'
+                        width: 64, height: 64, borderRadius: '50%', background: '#f3f4f6',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        overflow: 'hidden', border: '3px solid',
+                        borderColor: (wpStatus === 'open' || wpStatus === 'connected') ? '#10b981' : '#e5e7eb',
+                        boxShadow: '0 4px 10px rgba(0,0,0,0.1)',
+                        flexShrink: 0
                     }}>
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
-                        </svg>
+                        {wpProfilePic ? (
+                            <img src={wpProfilePic} alt="WhatsApp" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        ) : (
+                            <div style={{ background: '#ecfdf5', width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
+                                </svg>
+                            </div>
+                        )}
                     </div>
                     <div style={{ textAlign: 'left' }}>
-                        <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: '#1f2937' }}>Conexão WhatsApp</h2>
+                        <h2 style={{ margin: 0, fontSize: 18, fontWeight: 800, color: '#1f2937' }}>
+                            {wpName || 'Conexão WhatsApp'}
+                        </h2>
+                        {wpNumber && (
+                            <p style={{ margin: '2px 0 0', fontSize: 14, color: '#4b5563', fontWeight: 600 }}>
+                                📱 {wpNumber.startsWith('55') ? wpNumber.slice(2) : wpNumber}
+                            </p>
+                        )}
                         <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4 }}>
                             <span style={{
                                 width: 8, height: 8, borderRadius: '50%',
                                 background: (wpStatus === 'open' || wpStatus === 'connected') ? '#10b981' : wpStatus === 'connecting' ? '#f59e0b' : '#ef4444'
                             }} />
-                            <span style={{ fontSize: 13, fontWeight: 600, color: '#6b7280' }}>
-                                {(wpStatus === 'open' || wpStatus === 'connected') ? 'Conectado e Operacional' : wpStatus === 'connecting' ? 'Aguardando Leitura...' : wpStatus === 'verificando...' ? 'Verificando...' : 'Desconectado'}
+                            <span style={{ fontSize: 13, fontWeight: 700, color: (wpStatus === 'open' || wpStatus === 'connected') ? '#10b981' : (wpStatus === 'connecting' ? '#f59e0b' : '#6b7280') }}>
+                                {(wpStatus === 'open' || wpStatus === 'connected') ? 'WhatsApp ON' : wpStatus === 'connecting' ? 'Lendo QR Code...' : wpStatus === 'verificando...' ? 'Verificando...' : 'Desconectado'}
                             </span>
                         </div>
+                        {user?.codCliente && (
+                            <p style={{ margin: '6px 0 0', fontSize: 12, color: '#6b7280', fontWeight: 600, background: '#f3f4f6', padding: '2px 8px', borderRadius: 6, display: 'inline-block' }}>
+                                cod-cliente: {user.codCliente}
+                            </p>
+                        )}
                     </div>
                 </div>
 
@@ -808,6 +960,26 @@ export default function RobotConfigPage({ externalLojistaId }: { externalLojista
                     )}
                 </div>
 
+                {/* Divider */}
+                <div style={{ width: 1, height: 32, background: '#e5e7eb', flexShrink: 0 }} />
+
+                {/* Switch API Oficial (msg-paga) */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <Switch
+                        checked={config['msg-paga'] === 1}
+                        onChange={v => set('msg-paga', v ? 1 : 0)}
+                        label="API Oficial"
+                    />
+                    <span style={{
+                        fontSize: 11, padding: '4px 8px', borderRadius: 6, fontWeight: 700, whiteSpace: 'nowrap',
+                        background: config['msg-paga'] === 1 ? '#eff6ff' : '#f3f4f6',
+                        color: config['msg-paga'] === 1 ? '#2563eb' : '#9ca3af',
+                        border: `1px solid ${config['msg-paga'] === 1 ? '#bfdbfe' : '#e5e7eb'}`,
+                    }}>
+                        {config['msg-paga'] === 1 ? '📨 Templates Ativos' : '📭 Templates Inativos'}
+                    </span>
+                </div>
+
                 {/* Status badge */}
                 <div style={{
                     padding: '5px 14px', borderRadius: 99, fontSize: 12, fontWeight: 700,
@@ -855,6 +1027,87 @@ export default function RobotConfigPage({ externalLojistaId }: { externalLojista
                             }}
                         />
                     </div>
+                    {config.plano === 'premium' && (
+                        <div style={{ flex: 1, minWidth: 200 }}>
+                            <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 6 }}>
+                                <span>Horário do Disparo <span style={{ color: '#d97706' }}>★ Premium</span></span>
+                            </label>
+                            <input
+                                type="time"
+                                value={config['horario-recuperador']}
+                                onChange={e => set('horario-recuperador', e.target.value)}
+                                style={{
+                                    width: '100%', padding: '9px 12px', borderRadius: 8,
+                                    border: '1.5px solid #fcd34d', outline: 'none', background: '#fffbeb', color: '#92400e', fontWeight: 600
+                                }}
+                            />
+                        </div>
+                    )}
+                </div>
+            )}
+
+            {/* ── Mensagem do Recuperador ──────────────────────────────────── */}
+            {config['status-recuperador'] === 1 && (
+                <div style={{ background: '#fff', borderRadius: 16, border: '1.5px solid #e5e7eb', padding: '18px 24px', marginBottom: 20, boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, flexWrap: 'wrap', gap: 8 }}>
+                        <label style={{ fontSize: 14, fontWeight: 700, color: '#374151', display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <span style={{ fontSize: 16 }}>🔁</span> Mensagem do Recuperador de Clientes
+                        </label>
+                        <button
+                            onClick={() => set('recuperador-msg', DEFAULT_RECUPERADOR_MSG)}
+                            style={{ fontSize: 12, padding: '5px 12px', borderRadius: 8, background: '#eff6ff', color: '#1d4ed8', border: '1.5px solid #bfdbfe', cursor: 'pointer', fontWeight: 600 }}
+                        >↩ Usar Mensagem Padrão</button>
+                    </div>
+                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 10 }}>
+                        <span style={{ fontSize: 12, color: '#6b7280', fontWeight: 600, alignSelf: 'center' }}>Atalhos:</span>
+                        {VARIAVEIS_RECUPERADOR.map(v => (
+                            <button
+                                key={v.label}
+                                onClick={() => set('recuperador-msg', (config['recuperador-msg'] || '') + v.value)}
+                                style={{ fontSize: 11, padding: '3px 10px', borderRadius: 6, background: '#f3f4f6', color: '#374151', border: '1px solid #e5e7eb', cursor: 'pointer', fontWeight: 500 }}
+                            >+ {v.label}</button>
+                        ))}
+                    </div>
+                    <textarea
+                        value={config['recuperador-msg'] || ''}
+                        onChange={e => set('recuperador-msg', e.target.value)}
+                        placeholder="Digite a mensagem do robô recuperador..."
+                        rows={4}
+                        style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1.5px solid #d1d5db', outline: 'none', background: '#f9fafb', fontSize: 13, lineHeight: 1.6, resize: 'vertical', boxSizing: 'border-box' }}
+                    />
+                    <p style={{ fontSize: 11, color: '#9ca3af', margin: '6px 0 0' }}>O link do cardápio será enviado automaticamente pelo n8n.</p>
+                </div>
+            )}
+
+            {/* ── Mensagem do Lembrete ─────────────────────────────────────── */}
+            {config['status-lembrete'] === 1 && (
+                <div style={{ background: '#fff', borderRadius: 16, border: '1.5px solid #e5e7eb', padding: '18px 24px', marginBottom: 20, boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, flexWrap: 'wrap', gap: 8 }}>
+                        <label style={{ fontSize: 14, fontWeight: 700, color: '#374151', display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <span style={{ fontSize: 16 }}>⏰</span> Mensagem do Lembrete
+                        </label>
+                        <button
+                            onClick={() => set('lembrar-cliente', DEFAULT_LEMBRAR_CLIENTE)}
+                            style={{ fontSize: 12, padding: '5px 12px', borderRadius: 8, background: '#eff6ff', color: '#1d4ed8', border: '1.5px solid #bfdbfe', cursor: 'pointer', fontWeight: 600 }}
+                        >↩ Usar Mensagem Padrão</button>
+                    </div>
+                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 10 }}>
+                        <span style={{ fontSize: 12, color: '#6b7280', fontWeight: 600, alignSelf: 'center' }}>Atalhos:</span>
+                        {VARIAVEIS_LEMBRETE.map(v => (
+                            <button
+                                key={v.label}
+                                onClick={() => set('lembrar-cliente', (config['lembrar-cliente'] || '') + v.value)}
+                                style={{ fontSize: 11, padding: '3px 10px', borderRadius: 6, background: '#f3f4f6', color: '#374151', border: '1px solid #e5e7eb', cursor: 'pointer', fontWeight: 500 }}
+                            >+ {v.label}</button>
+                        ))}
+                    </div>
+                    <textarea
+                        value={config['lembrar-cliente'] || ''}
+                        onChange={e => set('lembrar-cliente', e.target.value)}
+                        placeholder="Digite a mensagem de lembrete..."
+                        rows={4}
+                        style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1.5px solid #d1d5db', outline: 'none', background: '#f9fafb', fontSize: 13, lineHeight: 1.6, resize: 'vertical', boxSizing: 'border-box' }}
+                    />
                 </div>
             )}
 
@@ -871,6 +1124,8 @@ export default function RobotConfigPage({ externalLojistaId }: { externalLojista
                 token={token}
                 hideImageOption={config.plano === 'basico' || config.plano === 'avancado'}
                 defaultMessage={DEFAULT_SAUDACAO}
+                fotoTipo="aberto"
+                externalLojistaId={externalLojistaId}
             />
 
             {/* ── Card Mensagem de Despedida ────────────────────────────────── */}
@@ -886,6 +1141,8 @@ export default function RobotConfigPage({ externalLojistaId }: { externalLojista
                 token={token}
                 hideImageOption={config.plano === 'basico' || config.plano === 'avancado'}
                 defaultMessage={DEFAULT_DESPEDIDA}
+                fotoTipo="fechado"
+                externalLojistaId={externalLojistaId}
             />
 
             {/* ── Card Exemplo de Mensagem ─────────────────────────────────── */}
@@ -935,18 +1192,60 @@ Veja nosso cardápio:
                     </h3>
                     {lojistaWorkflows.map((lw, idx) => (
                         <div key={idx} style={{
-                            background: '#f8fafc',
+                            background: '#fff',
                             borderRadius: 14,
                             border: '1.5px solid #e2e8f0',
                             padding: '16px 20px',
                             boxShadow: '0 1px 4px rgba(0,0,0,0.02)',
                         }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-                                <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: '#475569', display: 'flex', alignItems: 'center', gap: 6 }}>
-                                    <span style={{ padding: '2px 6px', background: '#3b82f6', color: '#fff', borderRadius: 4, fontSize: 10 }}>n8n</span>
-                                    {lw.workflow_name || 'Fluxo sem nome'}
-                                </p>
-                                <div style={{ display: 'flex', gap: 8 }}> {/* Added a div to group buttons */}
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
+                                <div>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                                        <span style={{
+                                            padding: '2px 8px',
+                                            background: lw.instance_id === '1' ? '#3b82f6' : '#8b5cf6',
+                                            color: '#fff',
+                                            borderRadius: 6,
+                                            fontSize: 10,
+                                            fontWeight: 800,
+                                            letterSpacing: '0.5px'
+                                        }}>
+                                            {lw.instance_id === '1' ? 'DELIVERY' : 'SERVICE'}
+                                        </span>
+                                        <h4 style={{ margin: 0, fontSize: 14, fontWeight: 800, color: '#1f2937' }}>
+                                            {lw.workflow_name || 'Fluxo sem nome'}
+                                        </h4>
+                                    </div>
+                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'center' }}>
+                                        <p style={{ margin: 0, fontSize: 11, color: '#64748b', fontWeight: 600 }}>
+                                            ID: <span style={{ color: '#334155', fontFamily: 'monospace' }}>{lw.workflow_id}</span>
+                                        </p>
+                                        <p style={{ margin: 0, fontSize: 11, color: '#64748b', fontWeight: 600 }}>
+                                            Instância: <span style={{ color: '#334155' }}>{lw.instance_id}</span>
+                                        </p>
+                                        <p style={{ margin: 0, fontSize: 11, color: '#64748b', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}>
+                                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></svg>
+                                            {new Date(lw.created_at).toLocaleDateString('pt-BR')} {new Date(lw.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                                        </p>
+                                    </div>
+                                </div>
+                                <div style={{ display: 'flex', gap: 6 }}>
+                                    {/* ── Toggle ONLINE/OFFLINE ── */}
+                                    <button
+                                        onClick={() => handleToggleWf(lw.instance_id, lw.workflow_id, !(wfActiveMap[lw.workflow_id] ?? true))}
+                                        style={{
+                                            background: wfActiveMap[lw.workflow_id] !== false ? '#dcfce7' : '#f3f4f6',
+                                            border: `1px solid ${wfActiveMap[lw.workflow_id] !== false ? '#bbf7d0' : '#e5e7eb'}`,
+                                            borderRadius: 8, padding: '6px 12px',
+                                            color: wfActiveMap[lw.workflow_id] !== false ? '#16a34a' : '#6b7280',
+                                            cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6,
+                                            fontSize: 11, fontWeight: 800, transition: 'all 0.2s'
+                                        }}
+                                        title={wfActiveMap[lw.workflow_id] !== false ? 'Clique para pausar' : 'Clique para ativar'}
+                                    >
+                                        <span style={{ width: 8, height: 8, borderRadius: '50%', background: wfActiveMap[lw.workflow_id] !== false ? '#16a34a' : '#d1d5db', transition: 'all 0.2s' }} />
+                                        {wfActiveMap[lw.workflow_id] !== false ? 'ONLINE' : 'OFFLINE'}
+                                    </button>
                                     {lw.maintenanceUrl && (
                                         <a
                                             href={lw.maintenanceUrl}
@@ -955,9 +1254,12 @@ Veja nosso cardápio:
                                             style={{
                                                 fontSize: 11, fontWeight: 800, color: '#2563eb',
                                                 textDecoration: 'none', background: '#eff6ff',
-                                                padding: '4px 10px', borderRadius: 6, border: '1px solid #bfdbfe',
-                                                display: 'flex', alignItems: 'center', gap: 4
+                                                padding: '6px 10px', borderRadius: 8, border: '1px solid #bfdbfe',
+                                                display: 'flex', alignItems: 'center', gap: 4,
+                                                transition: 'all 0.2s'
                                             }}
+                                            onMouseOver={(e) => e.currentTarget.style.background = '#dbeafe'}
+                                            onMouseOut={(e) => e.currentTarget.style.background = '#eff6ff'}
                                         >
                                             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
                                             Manutenção
@@ -967,10 +1269,12 @@ Veja nosso cardápio:
                                         onClick={() => handleUnbind(lw.id)}
                                         style={{
                                             background: '#fef2f2', border: '1px solid #fecaca',
-                                            borderRadius: 6, padding: '4px 8px', color: '#dc2626',
+                                            borderRadius: 8, padding: '6px 10px', color: '#dc2626',
                                             cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4,
-                                            fontSize: 11, fontWeight: 700
+                                            fontSize: 11, fontWeight: 800, transition: 'all 0.2s'
                                         }}
+                                        onMouseOver={(e) => e.currentTarget.style.background = '#fee2e2'}
+                                        onMouseOut={(e) => e.currentTarget.style.background = '#fef2f2'}
                                         title="Remover Vínculo"
                                     >
                                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
@@ -978,19 +1282,19 @@ Veja nosso cardápio:
                                     </button>
                                 </div>
                             </div>
-                            <div style={{ display: 'flex', gap: 8 }}>
+                            <div style={{ display: 'flex', gap: 8, background: '#f8fafc', padding: 8, borderRadius: 10, border: '1px inset #f1f5f9' }}>
                                 <input
                                     readOnly
                                     value={lw.webhook_url}
                                     style={{
                                         flex: 1,
-                                        background: '#fff',
-                                        border: '1px solid #cbd5e1',
-                                        borderRadius: 8,
-                                        padding: '8px 12px',
+                                        background: 'transparent',
+                                        border: 'none',
+                                        padding: '4px 8px',
                                         fontSize: 12,
-                                        color: '#64748b',
+                                        color: '#475569',
                                         outline: 'none',
+                                        fontFamily: 'monospace'
                                     }}
                                 />
                                 <button
@@ -1002,11 +1306,12 @@ Veja nosso cardápio:
                                         background: '#3b82f6',
                                         color: '#fff',
                                         border: 'none',
-                                        borderRadius: 8,
-                                        padding: '0 15px',
-                                        fontSize: 12,
-                                        fontWeight: 700,
+                                        borderRadius: 6,
+                                        padding: '6px 12px',
+                                        fontSize: 11,
+                                        fontWeight: 800,
                                         cursor: 'pointer',
+                                        boxShadow: '0 2px 4px rgba(59,130,246,0.3)'
                                     }}
                                 >
                                     Copiar
@@ -1069,6 +1374,14 @@ Veja nosso cardápio:
                     </p>
                 </div>
             )}
+
+            {/* ── Gerador de Imagens com IA ─────────────────────────────── */}
+            <ImageGeneratorPanel 
+                token={token} 
+                plano={config.plano || 'basico'} 
+                lojistaId={externalLojistaId || null}
+                onUseImage={handleUseAIImage}
+            />
 
             {/* ── Botão Salvar ─────────────────────────────────────────────── */}
             <button

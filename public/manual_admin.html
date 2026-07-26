@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manual do Administrador - n8n Controller</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #0f172a;
+            --secondary: #334155;
+            --accent: #2563eb;
+            --text: #475569;
+            --bg: #f8fafc;
+        }
+        * { box-sizing: border-box; }
+        body {
+            font-family: 'Inter', sans-serif;
+            color: var(--text);
+            line-height: 1.6;
+            margin: 0;
+            background: var(--bg);
+            -webkit-print-color-adjust: exact;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 40px;
+            background: white;
+            min-height: 100vh;
+            box-shadow: 0 0 50px rgba(0,0,0,0.05);
+        }
+        header {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            padding: 80px 40px;
+            border-radius: 24px;
+            margin-bottom: 60px;
+            text-align: center;
+        }
+        h1 {
+            font-family: 'Outfit', sans-serif;
+            font-size: 3rem;
+            margin: 0;
+            font-weight: 800;
+        }
+        h2 {
+            font-family: 'Outfit', sans-serif;
+            font-size: 2rem;
+            color: var(--primary);
+            border-bottom: 3px solid #f1f5f9;
+            padding-bottom: 12px;
+            margin-top: 70px;
+            display: flex;
+            align-items: center;
+        }
+        h2::before {
+            content: '';
+            width: 8px;
+            height: 35px;
+            background: var(--accent);
+            margin-right: 15px;
+            border-radius: 4px;
+        }
+        h3 {
+            font-size: 1.5rem;
+            color: var(--accent);
+            margin-top: 45px;
+        }
+        p, li { font-size: 1.15rem; }
+        .image-box {
+            background: #f8fafc;
+            padding: 15px;
+            border-radius: 16px;
+            margin: 30px 0;
+            border: 1px solid #e2e8f0;
+        }
+        img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 10px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.08);
+            display: block;
+            margin: 0 auto;
+        }
+        footer {
+            margin-top: 100px;
+            text-align: center;
+            font-size: 0.95rem;
+            color: #94a3b8;
+            padding: 40px 0;
+            border-top: 2px solid #f1f5f9;
+        }
+        @media print {
+            .container { box-shadow: none; padding: 0; width: 100% !important; max-width: 100% !important; }
+            header { border-radius: 0; }
+            h2 { page-break-before: always; }
+            img { break-inside: avoid; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <header>
+            <h1>Painel do Administrador</h1>
+            <p style="font-size: 1.4rem; opacity: 0.8;">Gestão Macro e Manutenção Técnica</p>
+        </header>
+
+        <section>
+            <h2>1. Login Administrativo</h2>
+            <p>O acesso é centralizado para controle total da infraestrutura.</p>
+            <div class="image-box">
+                <img src="/docs_assets/login_page_1773713809146.png" alt="Login">
+            </div>
+        </section>
+
+        <section>
+            <h2>2. Gestão de Robôs e Lojistas</h2>
+            <p>Monitore suas instâncias e clientes em uma única tela.</p>
+            <div class="image-box">
+                <img src="/docs_assets/admin_dashboard_1773713911283.png" alt="Dashboard Admin">
+            </div>
+            <ul>
+                <li><b>Monitoramento em Tempo Real</b>: Veja quais robôs estão ativos.</li>
+                <li><b>Gestão de Webhooks</b>: URLs prontas para integração externa.</li>
+            </ul>
+        </section>
+
+        <section>
+            <h2>3. Personalização (Whitelabel)</h2>
+            <p>Configure a identidade visual que seus lojistas verão.</p>
+            <div class="image-box">
+                <img src="/docs_assets/login_config_1773713929761.png" alt="Whitelabel">
+            </div>
+        </section>
+
+        <section>
+            <h2>4. Backups e Nuvem</h2>
+            <p>Proteção automática de dados via Google Drive.</p>
+            <div class="image-box">
+                <img src="/docs_assets/backup_page_google_drive_1773713939014.png" alt="Backup">
+            </div>
+            <div class="image-box">
+                <img src="/docs_assets/backup_history_1773713948064.png" alt="Histórico">
+            </div>
+        </section>
+
+        <section>
+            <h2>5. Central de Atualizações</h2>
+            <p>Realize manutenções e deploys de forma simplificada.</p>
+            <div class="image-box">
+                <img src="/docs_assets/system_update_page_1773713956823.png" alt="Atualizações">
+            </div>
+        </section>
+
+        <footer>
+            <p>© 2026 n8n Controller SaaS • Versão Administrativa</p>
+        </footer>
+    </div>
+
+</body>
+</html>

@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manual do Sistema - n8n Controller</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #2563eb;
+            --secondary: #4f46e5;
+            --dark: #0f172a;
+            --text: #334155;
+            --bg: #ffffff;
+            --accent: #f1f5f9;
+        }
+        * { box-sizing: border-box; }
+        body {
+            font-family: 'Inter', sans-serif;
+            color: var(--text);
+            line-height: 1.6;
+            margin: 0;
+            background: var(--bg);
+            -webkit-print-color-adjust: exact;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 40px;
+        }
+        header {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            padding: 80px 40px;
+            border-radius: 0 0 32px 32px;
+            margin-bottom: 50px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(37, 99, 235, 0.2);
+        }
+        h1 {
+            font-family: 'Outfit', sans-serif;
+            font-size: 3.5rem;
+            margin: 0;
+            font-weight: 800;
+            letter-spacing: -1px;
+        }
+        h2 {
+            font-family: 'Outfit', sans-serif;
+            font-size: 2.2rem;
+            color: var(--dark);
+            border-bottom: 3px solid var(--accent);
+            padding-bottom: 12px;
+            margin-top: 70px;
+            display: flex;
+            align-items: center;
+        }
+        h2::before {
+            content: '';
+            width: 10px;
+            height: 40px;
+            background: var(--primary);
+            margin-right: 18px;
+            border-radius: 5px;
+        }
+        h3 {
+            font-size: 1.6rem;
+            color: var(--primary);
+            margin-top: 45px;
+            font-weight: 700;
+        }
+        h4 {
+            font-size: 1.3rem;
+            color: var(--dark);
+            margin-top: 35px;
+            font-weight: 600;
+        }
+        p, li {
+            font-size: 1.15rem;
+            color: #475569;
+        }
+        ul { padding-left: 25px; }
+        li { margin-bottom: 12px; }
+        .image-container {
+            background: var(--accent);
+            padding: 15px;
+            border-radius: 20px;
+            margin: 30px 0;
+        }
+        img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 12px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.12);
+            display: block;
+            margin: 0 auto;
+        }
+        .divider {
+            height: 2px;
+            background: var(--accent);
+            margin: 60px 0;
+        }
+        footer {
+            margin-top: 100px;
+            text-align: center;
+            font-size: 1rem;
+            color: #94a3b8;
+            padding: 50px 0;
+            border-top: 2px solid var(--accent);
+        }
+        b { color: var(--dark); font-weight: 700; }
+        
+        @media print {
+            body { background: white; }
+            header { border-radius: 0; box-shadow: none; padding: 40px 20px; }
+            .container { padding: 0; width: 100% !important; max-width: 100% !important; }
+            h2 { page-break-before: always; }
+            img { break-inside: avoid; }
+            .image-container { background: transparent; padding: 0; }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Guia Completo do Sistema</h1>
+        <p style="font-size: 1.5rem; opacity: 0.9; font-weight: 400;">n8n Controller SaaS • Manual Oficial 2026</p>
+    </header>
+
+    <div class="container">
+        <p style="font-size: 1.3rem; margin-bottom: 40px;">Bem-vindo ao manual oficial do seu controlador de automação. Este documento detalha todas as funcionalidades disponíveis para Administradores e Lojistas, com guias visuais passo a passo.</p>
+
+        <section id="login">
+            <h2>1. Acesso e Segurança (Login)</h2>
+            <p>O sistema possui uma interface de login centralizada e segura, com suporte a recuperação de senha.</p>
+            <div class="image-container">
+                <img src="/docs_assets/login_page_1773713809146.png" alt="Página de Login">
+            </div>
+            <ul>
+                <li><b>Acessar App</b>: Interface de login convencional para usuários cadastrados.</li>
+                <li><b>Cadastrar Senha</b>: Fluxo de onboarding para que novos lojistas definam sua senha inicial de forma segura.</li>
+            </ul>
+        </section>
+
+        <section id="admin">
+            <h2>2. Painel do Administrador</h2>
+            <p>Destinado à gestão macro do sistema, controle de infraestrutura e personalização da marca.</p>
+            
+            <h3>2.1 Gestão de Robôs e Lojistas</h3>
+            <p>A central de comando onde você monitora todos os bots ativos e gerencia as assinaturas.</p>
+            <div class="image-container">
+                <img src="/docs_assets/admin_dashboard_1773713911283.png" alt="Painel Admin">
+            </div>
+            <ul>
+                <li><b>Segregação de Instâncias</b>: Organize fluxos distintos para serviços específicos (ex: Delivery, Status, Agendamento).</li>
+                <li><b>Controle Rápido</b>: Ative ou pause qualquer bot em tempo real com chaves intuitivas.</li>
+            </ul>
+
+            <h3>2.2 Personalização da Marca (Whitelabel)</h3>
+            <p>Torne o sistema verdadeiramente seu, alterando logotipos e paletas de cores.</p>
+            <div class="image-container">
+                <img src="/docs_assets/login_config_1773713929761.png" alt="Configuração de Marca">
+            </div>
+            <ul>
+                <li><b>Gestão de Identidade</b>: Ajuste o tamanho e posicionamento da sua logo.</li>
+                <li><b>Cores Dinâmicas</b>: Escolha as cores que melhor representam seu negócio para toda a interface.</li>
+            </ul>
+
+            <h3>2.3 Central de Backup e Restauração</h3>
+            <p>Segurança de dados padrão bancário com integrações em nuvem.</p>
+            <div class="image-container">
+                <img src="/docs_assets/backup_page_google_drive_1773713939014.png" alt="Central de Backup">
+            </div>
+            <ul>
+                <li><b>Ponto de Restauração</b>: Gere backups manuais instantâneos.</li>
+                <li><b>Nuvem Segura</b>: Sincronize automaticamente com o Google Drive.</li>
+            </ul>
+            <div class="image-container">
+                <img src="/docs_assets/backup_history_1773713948064.png" alt="Histórico do Drive">
+            </div>
+
+            <h3>2.4 Central de Atualizações</h3>
+            <p>Deploy Simplificado: envie novas versões do backend e frontend com apenas alguns cliques.</p>
+            <div class="image-container">
+                <img src="/docs_assets/system_update_page_1773713956823.png" alt="Central de Atualizações">
+            </div>
+        </section>
+
+        <section id="lojista">
+            <h2>3. Painel do Lojista</h2>
+            <p>A área de trabalho do parceiro, focada em produtividade e conversão de vendas via WhatsApp.</p>
+
+            <h3>3.1 Status de Conexão WhatsApp</h3>
+            <p>Monitore se o aparelho está conectado e operante em tempo real.</p>
+            <div class="image-container">
+                <img src="/docs_assets/lojista_whatsapp_status_1773749992035.png" alt="Status WhatsApp">
+            </div>
+            
+            <h3>3.2 Configurações de Atendimento e IA</h3>
+            <p>Controle absoluto sobre o comportamento do robô e mensagens automáticas.</p>
+            <div class="image-container">
+                <img src="/docs_assets/lojista_dashboard_main_1773749990432.png" alt="Configurações">
+            </div>
+
+            <h3>3.3 Funções Extras de Reengajamento</h3>
+            <p>Ferramentas automáticas desenhadas para aumentar o faturamento da loja.</p>
+            <div class="image-container">
+                <img src="/docs_assets/lojista_recuperador_1773749992891.png" alt="Reengajamento">
+            </div>
+            
+            <h4>3.3.1 Lembrete de Cliente (Abertura de Loja)</h4>
+            <p><b>Otimização de Fluxo</b>: Clientes que entram em contato fora do horário comercial são lembrados assim que a loja abre, com envio automático do link do cardápio.</p>
+            
+            <h4>3.3.2 Recuperador de Cliente (Fidelização)</h4>
+            <p><b>Foco em LTV</b>: Notifique automaticamente clientes que não compram há X dias, "pescando-os" de volta com mensagens acolhedoras e um atalho para pedido.</p>
+        </section>
+
+        <section id="pwa">
+            <h2>4. Mobilidade (O App no Celular)</h2>
+            <p>O sistema é um PWA (Progressive Web App). Isso significa que você e seus lojistas podem instalá-lo diretamente na tela inicial do smartphone, sem ocupar espaço na memória e com a mesma rapidez de um app nativo.</p>
+        </section>
+
+        <footer>
+            <p>Manual gerado em: 17/03/2026 • © n8n Controller SaaS • Documento Confidencial</p>
+        </footer>
+    </div>
+
+</body>
+</html>

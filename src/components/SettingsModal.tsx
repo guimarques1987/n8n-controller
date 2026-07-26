@@ -22,8 +22,8 @@ export default function SettingsModal({ isOpen, onClose, config, onSaveConfig, w
   useEffect(() => {
     if (isOpen) {
       const defaults = {
-        '1': { baseUrl: '', apiKey: '', webhookUrl: '', templates: [] },
-        '2': { baseUrl: '', apiKey: '', webhookUrl: '', templates: [] }
+        '1': { baseUrl: '', apiKey: '', webhookUrl: '', templates: {} },
+        '2': { baseUrl: '', apiKey: '', webhookUrl: '', templates: {} }
       };
 
       const newConfig = {
@@ -38,14 +38,14 @@ export default function SettingsModal({ isOpen, onClose, config, onSaveConfig, w
       // Fetch details for existing templates
       try {
         ['1', '2'].forEach(instanceId => {
-          const templates = newConfig[instanceId]?.templates || [];
-          if (Array.isArray(templates)) {
-            templates.forEach((t: any) => {
-              if (t && t.id && !workflowDetails[t.id]) {
-                loadWorkflowDetails(instanceId, t.id);
-              }
-            });
-          }
+          let templates = newConfig[instanceId]?.templates || {};
+          if (Array.isArray(templates)) templates = {};
+          
+          Object.values(templates).forEach((t: any) => {
+            if (t && t.id && !workflowDetails[t.id]) {
+              loadWorkflowDetails(instanceId, t.id);
+            }
+          });
         });
       } catch (e) {
         console.error("Error initializing templates", e);
@@ -88,7 +88,8 @@ export default function SettingsModal({ isOpen, onClose, config, onSaveConfig, w
   const updateTemplate = (instanceId: string, templateKey: string, field: string, value: any) => {
     setLocalConfig((prev: any) => {
       if (!prev) return prev;
-      const tMap = prev[instanceId]?.templates || {};
+      let tMap = prev[instanceId]?.templates || {};
+      if (Array.isArray(tMap)) tMap = {};
       const newTemplates = { ...tMap };
 
       newTemplates[templateKey] = { ...(newTemplates[templateKey] || {}), [field]: value };
@@ -346,6 +347,7 @@ export default function SettingsModal({ isOpen, onClose, config, onSaveConfig, w
 
               {activeTab === 'templates' && (
                 <div className="space-y-8">
+                  {/* ─── Instância 1: Robô Delivery — 3 Modelos de Atendimento + Complementares ─── */}
                   <div className="bg-blue-50/50 p-5 rounded-xl border border-blue-200">
                     <h4 className="text-lg font-bold text-gray-900 flex items-center mb-6">
                       <span className="w-4 h-4 rounded-full mr-3 bg-blue-500 shadow-sm border border-blue-600"></span>
@@ -353,10 +355,9 @@ export default function SettingsModal({ isOpen, onClose, config, onSaveConfig, w
                     </h4>
 
                     <div className="grid grid-cols-1 gap-6">
-                      {/* Modelo Delivery */}
                       <TemplateConfigurator
-                        title="1. Fluxo Base de Apresentação (Delivery)"
-                        templateKey="delivery"
+                        title="1. Delivery — Modelo Uazapi"
+                        templateKey="delivery_uazapi"
                         instanceId="1"
                         config={localConfig}
                         updateTemplate={updateTemplate}
@@ -373,9 +374,65 @@ export default function SettingsModal({ isOpen, onClose, config, onSaveConfig, w
                         setLocalConfig={setLocalConfig}
                       />
 
-                      {/* Modelo Recuperador */}
                       <TemplateConfigurator
-                        title="2. Fluxo Recuperador de Carrinho"
+                        title="2. Delivery — Modelo YCloude"
+                        templateKey="delivery_ycloud"
+                        instanceId="1"
+                        config={localConfig}
+                        updateTemplate={updateTemplate}
+                        workflows={workflows1}
+                        workflowSearch={workflowSearch}
+                        handleWorkflowSearch={handleWorkflowSearch}
+                        nodeSearch={nodeSearch}
+                        handleNodeSearch={handleNodeSearch}
+                        getFilteredNodes={getFilteredNodes}
+                        toggleEditableNode={toggleEditableNode}
+                        workflowDetails={workflowDetails}
+                        getNodeEditableParams={getNodeEditableParams}
+                        updateNodeParamConfig={updateNodeParamConfig}
+                        setLocalConfig={setLocalConfig}
+                      />
+
+                      <TemplateConfigurator
+                        title="3. Delivery — Modelo API Oficial"
+                        templateKey="delivery_oficial"
+                        instanceId="1"
+                        config={localConfig}
+                        updateTemplate={updateTemplate}
+                        workflows={workflows1}
+                        workflowSearch={workflowSearch}
+                        handleWorkflowSearch={handleWorkflowSearch}
+                        nodeSearch={nodeSearch}
+                        handleNodeSearch={handleNodeSearch}
+                        getFilteredNodes={getFilteredNodes}
+                        toggleEditableNode={toggleEditableNode}
+                        workflowDetails={workflowDetails}
+                        getNodeEditableParams={getNodeEditableParams}
+                        updateNodeParamConfig={updateNodeParamConfig}
+                        setLocalConfig={setLocalConfig}
+                      />
+
+                      <TemplateConfigurator
+                        title="4. Atendimento Presencial"
+                        templateKey="presencial"
+                        instanceId="1"
+                        config={localConfig}
+                        updateTemplate={updateTemplate}
+                        workflows={workflows1}
+                        workflowSearch={workflowSearch}
+                        handleWorkflowSearch={handleWorkflowSearch}
+                        nodeSearch={nodeSearch}
+                        handleNodeSearch={handleNodeSearch}
+                        getFilteredNodes={getFilteredNodes}
+                        toggleEditableNode={toggleEditableNode}
+                        workflowDetails={workflowDetails}
+                        getNodeEditableParams={getNodeEditableParams}
+                        updateNodeParamConfig={updateNodeParamConfig}
+                        setLocalConfig={setLocalConfig}
+                      />
+
+                      <TemplateConfigurator
+                        title="5. Recuperador de Carrinho"
                         templateKey="recuperador"
                         instanceId="1"
                         config={localConfig}
@@ -393,9 +450,8 @@ export default function SettingsModal({ isOpen, onClose, config, onSaveConfig, w
                         setLocalConfig={setLocalConfig}
                       />
 
-                      {/* Modelo Lembrete */}
                       <TemplateConfigurator
-                        title="3. Fluxo de Lembrete"
+                        title="6. Fluxo de Lembrete"
                         templateKey="lembrete"
                         instanceId="1"
                         config={localConfig}
@@ -415,6 +471,7 @@ export default function SettingsModal({ isOpen, onClose, config, onSaveConfig, w
                     </div>
                   </div>
 
+                  {/* ─── Instância 2: Robô de Status — 3 Modelos de Notificação ─── */}
                   <div className="bg-purple-50/50 p-5 rounded-xl border border-purple-200 mt-8">
                     <h4 className="text-lg font-bold text-gray-900 flex items-center mb-6">
                       <span className="w-4 h-4 rounded-full mr-3 bg-purple-500 shadow-sm border border-purple-600"></span>
@@ -422,10 +479,47 @@ export default function SettingsModal({ isOpen, onClose, config, onSaveConfig, w
                     </h4>
 
                     <div className="grid grid-cols-1 gap-6">
-                      {/* Modelo Status */}
                       <TemplateConfigurator
-                        title="4. Fluxo de Status de Pedido"
-                        templateKey="status"
+                        title="1. Status — Modelo Uazapi"
+                        templateKey="status_uazapi"
+                        instanceId="2"
+                        config={localConfig}
+                        updateTemplate={updateTemplate}
+                        workflows={workflows2}
+                        workflowSearch={workflowSearch}
+                        handleWorkflowSearch={handleWorkflowSearch}
+                        nodeSearch={nodeSearch}
+                        handleNodeSearch={handleNodeSearch}
+                        getFilteredNodes={getFilteredNodes}
+                        toggleEditableNode={toggleEditableNode}
+                        workflowDetails={workflowDetails}
+                        getNodeEditableParams={getNodeEditableParams}
+                        updateNodeParamConfig={updateNodeParamConfig}
+                        setLocalConfig={setLocalConfig}
+                      />
+
+                      <TemplateConfigurator
+                        title="2. Status — Modelo YCloude"
+                        templateKey="status_ycloud"
+                        instanceId="2"
+                        config={localConfig}
+                        updateTemplate={updateTemplate}
+                        workflows={workflows2}
+                        workflowSearch={workflowSearch}
+                        handleWorkflowSearch={handleWorkflowSearch}
+                        nodeSearch={nodeSearch}
+                        handleNodeSearch={handleNodeSearch}
+                        getFilteredNodes={getFilteredNodes}
+                        toggleEditableNode={toggleEditableNode}
+                        workflowDetails={workflowDetails}
+                        getNodeEditableParams={getNodeEditableParams}
+                        updateNodeParamConfig={updateNodeParamConfig}
+                        setLocalConfig={setLocalConfig}
+                      />
+
+                      <TemplateConfigurator
+                        title="3. Status — Modelo API Oficial"
+                        templateKey="status_oficial"
                         instanceId="2"
                         config={localConfig}
                         updateTemplate={updateTemplate}
@@ -492,7 +586,10 @@ function TemplateConfigurator({
 }: any) {
 
   const templates = config[instanceId]?.templates || {};
-  const template = templates[templateKey] || { id: '', label: '', editableNodes: [] };
+  let template = templates[templateKey];
+  if (!template && templateKey === 'delivery_uazapi') template = templates['delivery'] || templates['modeloUazpi'];
+  if (!template && templateKey === 'status_uazapi') template = templates['status'] || templates['modeloStatusUazapi'];
+  if (!template) template = { id: '', label: '', editableNodes: [] };
 
   return (
     <div className="bg-white p-5 rounded-lg border border-gray-200 shadow-sm">
