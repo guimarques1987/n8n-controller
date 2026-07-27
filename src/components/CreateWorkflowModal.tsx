@@ -85,16 +85,25 @@ function Switch({ checked, onChange, label, disabled }: { checked: boolean; onCh
 
 // Definição estática dos modelos esperados
 const FIXED_TEMPLATES = [
-    // Instância 1: Delivery
+    // ─── MODELO UAZAPI ───
     { key: 'delivery_uazapi', name: 'Delivery - Uazapi', instanceId: '1', color: 'text-blue-500 bg-blue-50 flex items-center justify-center p-2 rounded-lg' },
-    { key: 'delivery_ycloud', name: 'Delivery - YCloude', instanceId: '1', color: 'text-emerald-500 bg-emerald-50 flex items-center justify-center p-2 rounded-lg' },
-    { key: 'delivery_oficial', name: 'Delivery - API Oficial', instanceId: '1', color: 'text-indigo-500 bg-indigo-50 flex items-center justify-center p-2 rounded-lg' },
-    { key: 'presencial', name: 'Presencial', instanceId: '1', color: 'text-orange-500 bg-orange-50 flex items-center justify-center p-2 rounded-lg' },
-    { key: 'recuperador', name: 'Recuperador', instanceId: '1', color: 'text-violet-500 bg-violet-50 flex items-center justify-center p-2 rounded-lg' },
-    { key: 'lembrete', name: 'Lembrete', instanceId: '1', color: 'text-amber-500 bg-amber-50 flex items-center justify-center p-2 rounded-lg' },
-    // Instância 2: Status
+    { key: 'presencial', name: 'Presencial - Uazapi', instanceId: '1', color: 'text-orange-500 bg-orange-50 flex items-center justify-center p-2 rounded-lg' },
+    { key: 'recuperador', name: 'Recuperador - Uazapi', instanceId: '1', color: 'text-violet-500 bg-violet-50 flex items-center justify-center p-2 rounded-lg' },
+    { key: 'lembrete', name: 'Lembrete - Uazapi', instanceId: '1', color: 'text-amber-500 bg-amber-50 flex items-center justify-center p-2 rounded-lg' },
     { key: 'status_uazapi', name: 'Status - Uazapi', instanceId: '2', color: 'text-purple-500 bg-purple-50 flex items-center justify-center p-2 rounded-lg' },
+
+    // ─── MODELO YCLOUDE ───
+    { key: 'delivery_ycloud', name: 'Delivery - YCloude', instanceId: '1', color: 'text-emerald-500 bg-emerald-50 flex items-center justify-center p-2 rounded-lg' },
+    { key: 'presencial_ycloud', name: 'Presencial - YCloude', instanceId: '1', color: 'text-orange-500 bg-orange-50 flex items-center justify-center p-2 rounded-lg' },
+    { key: 'recuperador_ycloud', name: 'Recuperador - YCloude', instanceId: '1', color: 'text-violet-500 bg-violet-50 flex items-center justify-center p-2 rounded-lg' },
+    { key: 'lembrete_ycloud', name: 'Lembrete - YCloude', instanceId: '1', color: 'text-amber-500 bg-amber-50 flex items-center justify-center p-2 rounded-lg' },
     { key: 'status_ycloud', name: 'Status - YCloude', instanceId: '2', color: 'text-teal-500 bg-teal-50 flex items-center justify-center p-2 rounded-lg' },
+
+    // ─── MODELO API OFICIAL ───
+    { key: 'delivery_oficial', name: 'Delivery - API Oficial', instanceId: '1', color: 'text-indigo-500 bg-indigo-50 flex items-center justify-center p-2 rounded-lg' },
+    { key: 'presencial_oficial', name: 'Presencial - API Oficial', instanceId: '1', color: 'text-orange-500 bg-orange-50 flex items-center justify-center p-2 rounded-lg' },
+    { key: 'recuperador_oficial', name: 'Recuperador - API Oficial', instanceId: '1', color: 'text-violet-500 bg-violet-50 flex items-center justify-center p-2 rounded-lg' },
+    { key: 'lembrete_oficial', name: 'Lembrete - API Oficial', instanceId: '1', color: 'text-amber-500 bg-amber-50 flex items-center justify-center p-2 rounded-lg' },
     { key: 'status_oficial', name: 'Status - API Oficial', instanceId: '2', color: 'text-pink-500 bg-pink-50 flex items-center justify-center p-2 rounded-lg' }
 ];
 
@@ -116,13 +125,19 @@ const CreateWorkflowModal: React.FC<CreateWorkflowModalProps> = ({
     // Estado para armazenar quais modelos foram selecionados na UI
     const [selectedKeys, setSelectedKeys] = useState<Record<string, boolean>>({
         delivery_uazapi: false,
-        delivery_ycloud: false,
-        delivery_oficial: false,
         presencial: false,
         recuperador: false,
         lembrete: false,
         status_uazapi: false,
+        delivery_ycloud: false,
+        presencial_ycloud: false,
+        recuperador_ycloud: false,
+        lembrete_ycloud: false,
         status_ycloud: false,
+        delivery_oficial: false,
+        presencial_oficial: false,
+        recuperador_oficial: false,
+        lembrete_oficial: false,
         status_oficial: false
     });
 
@@ -132,14 +147,23 @@ const CreateWorkflowModal: React.FC<CreateWorkflowModalProps> = ({
             const next = { ...prev };
             if (type !== 'uazapi') {
                 next.delivery_uazapi = false;
+                next.presencial = false;
+                next.recuperador = false;
+                next.lembrete = false;
                 next.status_uazapi = false;
             }
             if (type !== 'ycloud') {
                 next.delivery_ycloud = false;
+                next.presencial_ycloud = false;
+                next.recuperador_ycloud = false;
+                next.lembrete_ycloud = false;
                 next.status_ycloud = false;
             }
             if (type !== 'oficial') {
                 next.delivery_oficial = false;
+                next.presencial_oficial = false;
+                next.recuperador_oficial = false;
+                next.lembrete_oficial = false;
                 next.status_oficial = false;
             }
             return next;
@@ -191,9 +215,9 @@ const CreateWorkflowModal: React.FC<CreateWorkflowModalProps> = ({
             if (meta.key === 'delivery_uazapi' || meta.key === 'delivery') return rawTemplates.find((t: any) => t.id === 'modeloUazpi' || t.name === 'Robô Delivery');
             if (meta.key === 'delivery_ycloud') return rawTemplates.find((t: any) => t.id === 'modeloYCloud' || t.name === 'Delivery YCloude');
             if (meta.key === 'delivery_oficial') return rawTemplates.find((t: any) => t.id === 'modeloOficial' || t.name === 'Delivery API Oficial');
-            if (meta.key === 'presencial') return rawTemplates.find((t: any) => t.id === 'modeloPresencial' || t.name === 'Atendimento Presencial');
-            if (meta.key === 'recuperador') return rawTemplates.find((t: any) => t.id === 'modeloRecuperador' || t.name === 'Recuperador de Carrinho');
-            if (meta.key === 'lembrete') return rawTemplates.find((t: any) => t.id === 'modeloLembrete' || t.name === 'Fluxo de Lembrete');
+            if (meta.key === 'presencial' || meta.key === 'presencial_ycloud' || meta.key === 'presencial_oficial') return rawTemplates.find((t: any) => t.id === 'modeloPresencial' || t.name === 'Atendimento Presencial');
+            if (meta.key === 'recuperador' || meta.key === 'recuperador_ycloud' || meta.key === 'recuperador_oficial') return rawTemplates.find((t: any) => t.id === 'modeloRecuperador' || t.name === 'Recuperador de Carrinho');
+            if (meta.key === 'lembrete' || meta.key === 'lembrete_ycloud' || meta.key === 'lembrete_oficial') return rawTemplates.find((t: any) => t.id === 'modeloLembrete' || t.name === 'Fluxo de Lembrete');
             if (meta.key === 'status_uazapi' || meta.key === 'status') return rawTemplates.find((t: any) => t.id === 'modeloStatusUazapi' || t.name === 'Robô de Status');
             if (meta.key === 'status_ycloud') return rawTemplates.find((t: any) => t.id === 'modeloStatusYCloud' || t.name === 'Status YCloude');
             if (meta.key === 'status_oficial') return rawTemplates.find((t: any) => t.id === 'modeloStatusOficial' || t.name === 'Status API Oficial');
@@ -204,9 +228,9 @@ const CreateWorkflowModal: React.FC<CreateWorkflowModalProps> = ({
             if (meta.key === 'delivery_uazapi') tc = rawTemplates?.delivery || rawTemplates?.modeloUazpi;
             if (meta.key === 'delivery_ycloud') tc = rawTemplates?.modeloYCloud;
             if (meta.key === 'delivery_oficial') tc = rawTemplates?.modeloOficial;
-            if (meta.key === 'presencial') tc = rawTemplates?.modeloPresencial;
-            if (meta.key === 'recuperador') tc = rawTemplates?.modeloRecuperador;
-            if (meta.key === 'lembrete') tc = rawTemplates?.modeloLembrete;
+            if (meta.key === 'presencial' || meta.key === 'presencial_ycloud' || meta.key === 'presencial_oficial') tc = rawTemplates?.presencial || rawTemplates?.modeloPresencial;
+            if (meta.key === 'recuperador' || meta.key === 'recuperador_ycloud' || meta.key === 'recuperador_oficial') tc = rawTemplates?.recuperador || rawTemplates?.modeloRecuperador;
+            if (meta.key === 'lembrete' || meta.key === 'lembrete_ycloud' || meta.key === 'lembrete_oficial') tc = rawTemplates?.lembrete || rawTemplates?.modeloLembrete;
             if (meta.key === 'status_uazapi') tc = rawTemplates?.status || rawTemplates?.modeloStatusUazapi;
             if (meta.key === 'status_ycloud') tc = rawTemplates?.modeloStatusYCloud;
             if (meta.key === 'status_oficial') tc = rawTemplates?.modeloStatusOficial;
@@ -627,10 +651,10 @@ const CreateWorkflowModal: React.FC<CreateWorkflowModalProps> = ({
                                         return ['delivery_uazapi', 'presencial', 'recuperador', 'lembrete', 'status_uazapi'].includes(meta.key);
                                     }
                                     if (selectedModelType === 'ycloud') {
-                                        return ['delivery_ycloud', 'presencial', 'recuperador', 'lembrete', 'status_ycloud'].includes(meta.key);
+                                        return ['delivery_ycloud', 'presencial_ycloud', 'recuperador_ycloud', 'lembrete_ycloud', 'status_ycloud'].includes(meta.key);
                                     }
                                     if (selectedModelType === 'oficial') {
-                                        return ['delivery_oficial', 'presencial', 'recuperador', 'lembrete', 'status_oficial'].includes(meta.key);
+                                        return ['delivery_oficial', 'presencial_oficial', 'recuperador_oficial', 'lembrete_oficial', 'status_oficial'].includes(meta.key);
                                     }
                                     return true;
                                 }).map(meta => {

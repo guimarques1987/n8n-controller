@@ -483,45 +483,157 @@ export default function SettingsModal({ isOpen, onClose, config, onSaveConfig, w
                       )}
 
                       {activeModel === 'ycloud' && (
-                        <TemplateConfigurator
-                          title="Delivery — YCloude"
-                          templateKey="delivery_ycloud"
-                          instanceId="1"
-                          config={localConfig}
-                          updateTemplate={updateTemplate}
-                          workflows={workflows1}
-                          workflowSearch={workflowSearch}
-                          handleWorkflowSearch={handleWorkflowSearch}
-                          nodeSearch={nodeSearch}
-                          handleNodeSearch={handleNodeSearch}
-                          getFilteredNodes={getFilteredNodes}
-                          toggleEditableNode={toggleEditableNode}
-                          workflowDetails={workflowDetails}
-                          getNodeEditableParams={getNodeEditableParams}
-                          updateNodeParamConfig={updateNodeParamConfig}
-                          setLocalConfig={setLocalConfig}
-                        />
+                        <>
+                          <TemplateConfigurator
+                            title="Delivery — YCloude"
+                            templateKey="delivery_ycloud"
+                            instanceId="1"
+                            config={localConfig}
+                            updateTemplate={updateTemplate}
+                            workflows={workflows1}
+                            workflowSearch={workflowSearch}
+                            handleWorkflowSearch={handleWorkflowSearch}
+                            nodeSearch={nodeSearch}
+                            handleNodeSearch={handleNodeSearch}
+                            getFilteredNodes={getFilteredNodes}
+                            toggleEditableNode={toggleEditableNode}
+                            workflowDetails={workflowDetails}
+                            getNodeEditableParams={getNodeEditableParams}
+                            updateNodeParamConfig={updateNodeParamConfig}
+                            setLocalConfig={setLocalConfig}
+                          />
+                          <TemplateConfigurator
+                            title="Atendimento Presencial — YCloude"
+                            templateKey="presencial_ycloud"
+                            instanceId="1"
+                            config={localConfig}
+                            updateTemplate={updateTemplate}
+                            workflows={workflows1}
+                            workflowSearch={workflowSearch}
+                            handleWorkflowSearch={handleWorkflowSearch}
+                            nodeSearch={nodeSearch}
+                            handleNodeSearch={handleNodeSearch}
+                            getFilteredNodes={getFilteredNodes}
+                            toggleEditableNode={toggleEditableNode}
+                            workflowDetails={workflowDetails}
+                            getNodeEditableParams={getNodeEditableParams}
+                            updateNodeParamConfig={updateNodeParamConfig}
+                            setLocalConfig={setLocalConfig}
+                          />
+                          <TemplateConfigurator
+                            title="Recuperador de Carrinho — YCloude"
+                            templateKey="recuperador_ycloud"
+                            instanceId="1"
+                            config={localConfig}
+                            updateTemplate={updateTemplate}
+                            workflows={workflows1}
+                            workflowSearch={workflowSearch}
+                            handleWorkflowSearch={handleWorkflowSearch}
+                            nodeSearch={nodeSearch}
+                            handleNodeSearch={handleNodeSearch}
+                            getFilteredNodes={getFilteredNodes}
+                            toggleEditableNode={toggleEditableNode}
+                            workflowDetails={workflowDetails}
+                            getNodeEditableParams={getNodeEditableParams}
+                            updateNodeParamConfig={updateNodeParamConfig}
+                            setLocalConfig={setLocalConfig}
+                          />
+                          <TemplateConfigurator
+                            title="Fluxo de Lembrete — YCloude"
+                            templateKey="lembrete_ycloud"
+                            instanceId="1"
+                            config={localConfig}
+                            updateTemplate={updateTemplate}
+                            workflows={workflows1}
+                            workflowSearch={workflowSearch}
+                            handleWorkflowSearch={handleWorkflowSearch}
+                            nodeSearch={nodeSearch}
+                            handleNodeSearch={handleNodeSearch}
+                            getFilteredNodes={getFilteredNodes}
+                            toggleEditableNode={toggleEditableNode}
+                            workflowDetails={workflowDetails}
+                            getNodeEditableParams={getNodeEditableParams}
+                            updateNodeParamConfig={updateNodeParamConfig}
+                            setLocalConfig={setLocalConfig}
+                          />
+                        </>
                       )}
 
                       {activeModel === 'oficial' && (
-                        <TemplateConfigurator
-                          title="Delivery — API Oficial"
-                          templateKey="delivery_oficial"
-                          instanceId="1"
-                          config={localConfig}
-                          updateTemplate={updateTemplate}
-                          workflows={workflows1}
-                          workflowSearch={workflowSearch}
-                          handleWorkflowSearch={handleWorkflowSearch}
-                          nodeSearch={nodeSearch}
-                          handleNodeSearch={handleNodeSearch}
-                          getFilteredNodes={getFilteredNodes}
-                          toggleEditableNode={toggleEditableNode}
-                          workflowDetails={workflowDetails}
-                          getNodeEditableParams={getNodeEditableParams}
-                          updateNodeParamConfig={updateNodeParamConfig}
-                          setLocalConfig={setLocalConfig}
-                        />
+                        <>
+                          <TemplateConfigurator
+                            title="Delivery — API Oficial"
+                            templateKey="delivery_oficial"
+                            instanceId="1"
+                            config={localConfig}
+                            updateTemplate={updateTemplate}
+                            workflows={workflows1}
+                            workflowSearch={workflowSearch}
+                            handleWorkflowSearch={handleWorkflowSearch}
+                            nodeSearch={nodeSearch}
+                            handleNodeSearch={handleNodeSearch}
+                            getFilteredNodes={getFilteredNodes}
+                            toggleEditableNode={toggleEditableNode}
+                            workflowDetails={workflowDetails}
+                            getNodeEditableParams={getNodeEditableParams}
+                            updateNodeParamConfig={updateNodeParamConfig}
+                            setLocalConfig={setLocalConfig}
+                          />
+                          <TemplateConfigurator
+                            title="Atendimento Presencial — API Oficial"
+                            templateKey="presencial_oficial"
+                            instanceId="1"
+                            config={localConfig}
+                            updateTemplate={updateTemplate}
+                            workflows={workflows1}
+                            workflowSearch={workflowSearch}
+                            handleWorkflowSearch={handleWorkflowSearch}
+                            nodeSearch={nodeSearch}
+                            handleNodeSearch={handleNodeSearch}
+                            getFilteredNodes={getFilteredNodes}
+                            toggleEditableNode={toggleEditableNode}
+                            workflowDetails={workflowDetails}
+                            getNodeEditableParams={getNodeEditableParams}
+                            updateNodeParamConfig={updateNodeParamConfig}
+                            setLocalConfig={setLocalConfig}
+                          />
+                          <TemplateConfigurator
+                            title="Recuperador de Carrinho — API Oficial"
+                            templateKey="recuperador_oficial"
+                            instanceId="1"
+                            config={localConfig}
+                            updateTemplate={updateTemplate}
+                            workflows={workflows1}
+                            workflowSearch={workflowSearch}
+                            handleWorkflowSearch={handleWorkflowSearch}
+                            nodeSearch={nodeSearch}
+                            handleNodeSearch={handleNodeSearch}
+                            getFilteredNodes={getFilteredNodes}
+                            toggleEditableNode={toggleEditableNode}
+                            workflowDetails={workflowDetails}
+                            getNodeEditableParams={getNodeEditableParams}
+                            updateNodeParamConfig={updateNodeParamConfig}
+                            setLocalConfig={setLocalConfig}
+                          />
+                          <TemplateConfigurator
+                            title="Fluxo de Lembrete — API Oficial"
+                            templateKey="lembrete_oficial"
+                            instanceId="1"
+                            config={localConfig}
+                            updateTemplate={updateTemplate}
+                            workflows={workflows1}
+                            workflowSearch={workflowSearch}
+                            handleWorkflowSearch={handleWorkflowSearch}
+                            nodeSearch={nodeSearch}
+                            handleNodeSearch={handleNodeSearch}
+                            getFilteredNodes={getFilteredNodes}
+                            toggleEditableNode={toggleEditableNode}
+                            workflowDetails={workflowDetails}
+                            getNodeEditableParams={getNodeEditableParams}
+                            updateNodeParamConfig={updateNodeParamConfig}
+                            setLocalConfig={setLocalConfig}
+                          />
+                        </>
                       )}
                     </div>
                   </div>
